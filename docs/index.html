@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathQuiz Pro - Interface Professeur</title>
+    
+    <!-- Configuration -->
+    <script src="config.js"></script>
+    
+    <!-- MathJax Configuration et Import -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+            },
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                    console.log('MathJax chargé !');
+                }
+            }
+        };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+        }
+
+        .container {
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+
+        .home-bg { background: linear-gradient(135deg, #7c3aed, #2563eb, #4f46e5); }
+        .create-bg { background: linear-gradient(135deg, #059669, #0d9488, #2563eb); }
+
+        .max-w-6xl { max-width: 72rem; margin: 0 auto; }
+        .max-w-4xl { max-width: 56rem; margin: 0 auto; }
+        .text-center { text-align: center; }
+        .hidden { display: none; }
+
+        .title {
+            font-size: 3rem;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: rgba(219, 234, 254, 0.8);
+            margin-bottom: 2rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            padding: 1.5rem;
+        }
+
+        .btn {
+            padding: 2rem;
+            border-radius: 1rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            font-weight: bold;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .btn:hover { transform: scale(1.05); }
+        .btn-green { background: #10b981; color: white; }
+        .btn-green:hover { background: #059669; }
+        .btn-yellow { background: #eab308; color: white; }
+        .btn-yellow:hover { background: #ca8a04; }
+        .btn-blue { background: #3b82f6; color: white; }
+        .btn-blue:hover { background: #2563eb; }
+        .btn-purple { background: #8b5cf6; color: white; }
+        .btn-purple:hover { background: #7c3aed; }
+        .btn-red { background: #ef4444; color: white; }
+        .btn-red:hover { background: #dc2626; }
+        .btn-gray { background: #6b7280; color: white; }
+        .btn-gray:hover { background: #4b5563; }
+
+        .quiz-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .quiz-item {
+            background: #f9fafb;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            border: 2px solid #e5e7eb;
+            transition: border-color 0.3s;
+        }
+
+        .quiz-item:hover { border-color: #a855f7; }
+
+        .quiz-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .quiz-actions button {
+            flex: 1;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+
+        .form-group { margin-bottom: 1.5rem; }
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .live-session {
+            background: linear-gradient(135deg, #f59e0b, #ea580c);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: white;
+        }
+
+        .session-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .room-code {
+            font-size: 2rem;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            letter-spacing: 0.2rem;
+        }
+
+        .participants-count {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .session-controls {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .session-controls button {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show { transform: translateX(0); }
+        .notification.success { background: #10b981; }
+        .notification.error { background: #ef4444; }
+        .notification.info { background: #3b82f6; }
+
+        @media (max-width: 768px) {
+            .title { font-size: 2rem; }
+            .grid { grid-template-columns: 1fr; }
+            .session-controls { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Page d'accueil -->
+        <div id="home" class="container home-bg">
+            <div class="max-w-6xl">
+                <div class="text-center">
+                    <h1 class="title">MathQuiz Pro</h1>
+                    <p class="subtitle">Interface Professeur - Créez et animez vos quiz interactifs</p>
+                    <p style="color: rgba(255,255,255,0.7); font-size: 0.9rem; margin-top: 1rem;">
+                        🌐 URL Élèves: <strong>adatil.github.io/mathquiz-supabase/student.html</strong>
+                    </p>
+                </div>
+
+                <!-- Session en cours -->
+                <div id="liveSession" class="live-session hidden">
+                    <div class="session-header">
+                        <div>
+                            <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">🎯 Session en cours</h3>
+                            <p id="sessionQuizTitle">Quiz Title</p>
+                        </div>
+                        <div class="room-code" id="sessionRoomCode">ABC123</div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="participants-count">
+                            👥 <span id="participantsCount">0</span> participant(s) connecté(s)
+                        </div>
+                        <div id="sessionStatus" style="font-weight: bold;">En attente...</div>
+                    </div>
+
+                    <div class="session-controls">
+                        <button id="startQuizBtn" class="btn-green" style="background: #22c55e;">
+                            🚀 Démarrer le Quiz
+                        </button>
+                        <button id="nextQuestionBtn" class="btn-blue hidden" style="background: #3b82f6;">
+                            ➡️ Question Suivante
+                        </button>
+                        <button id="endQuizBtn" class="btn-red hidden" style="background: #ef4444;">
+                            🏁 Terminer
+                        </button>
+                        <button id="closeSessionBtn" class="btn-gray" style="background: #6b7280;">
+                            ❌ Fermer
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid">
+                    <button class="btn btn-green" onclick="showCreateView()">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">➕</div>
+                        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Créer un Quiz</h3>
+                        <p style="opacity: 0.8;">Ajoutez de nouvelles questions</p>
+                    </button>
+                    
+                    <button class="btn btn-yellow" onclick="document.getElementById('fileInput').click()">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">📁</div>
+                        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Charger XML</h3>
+                        <p style="opacity: 0.8;">Importez vos questions</p>
+                    </button>
+                    <input type="file" id="fileInput" accept=".xml" style="display: none;" onchange="loadQuestionsFromFile(event)">
+                    
+                    <button class="btn btn-purple" onclick="downloadExampleXML()">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">📄</div>
+                        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Exemple XML</h3>
+                        <p style="opacity: 0.8;">Télécharger un modèle</p>
+                    </button>
+                    
+                    <button class="btn btn-blue" onclick="showAnalytics()">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+                        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Statistiques</h3>
+                        <p style="opacity: 0.8;">Analyses et résultats</p>
+                    </button>
+                </div>
+
+                <div class="card">
+                    <h2 style="font-size: 1.5rem; font-weight: bold; color: #1f2937; margin-bottom: 1.5rem;">
+                        🏆 Mes Quiz
+                    </h2>
+                    
+                    <div id="quizList" class="quiz-grid">
+                        <div style="text-align: center; padding: 2rem; color: #6b7280;">
+                            <div class="loading"></div>
+                            <p style="margin-top: 1rem;">Chargement des quiz...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page création (simplified) -->
+        <div id="create" class="container create-bg hidden">
+            <div class="max-w-4xl">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h1 style="font-size: 2rem; font-weight: bold; color: #1f2937;">Créer un nouveau quiz</h1>
+                        <button class="btn-gray" style="padding: 0.5rem 1rem; border-radius: 0.5rem;" onclick="showHomeView()">Retour</button>
+                    </div>
+                    
+                    <p style="color: #6b7280; padding: 2rem; text-align: center; border: 2px dashed #d1d5db; border-radius: 1rem;">
+                        📝 Interface de création en cours de finalisation...<br>
+                        Utilisez l'import XML en attendant !
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration depuis le fichier externe
+        const SUPABASE_URL = window.MATHQUIZ_CONFIG.SUPABASE_URL;
+        const SUPABASE_ANON_KEY = window.MATHQUIZ_CONFIG.SUPABASE_ANON_KEY;
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // État global
+        let state = {
+            currentView: 'home',
+            quizzes: [],
+            currentSession: null,
+            websocket: null
+        };
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            showHomeView();
+            setTimeout(renderMath, 500);
+        });
+
+        function showView(viewName) {
+            ['home', 'create'].forEach(view => {
+                document.getElementById(view).classList.add('hidden');
+            });
+            document.getElementById(viewName).classList.remove('hidden');
+            state.currentView = viewName;
+        }
+
+        function showHomeView() {
+            showView('home');
+            loadQuizzes();
+        }
+
+        function showCreateView() {
+            showView('create');
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => notification.classList.add('show'), 100);
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => document.body.removeChild(notification), 300);
+            }, 3000);
+        }
+
+        function renderMath() {
+            if (window.MathJax && MathJax.typesetPromise) {
+                MathJax.typesetPromise().catch((err) => console.error('Erreur MathJax:', err));
+            }
+        }
+
+        async function loadQuizzes() {
+            try {
+                showNotification('🚀 MathQuiz Pro initialisé avec Supabase !', 'success');
+                
+                // Simulation de données en attendant l'API
+                state.quizzes = [
+                    {
+                        id: 'demo-1',
+                        title: 'Quiz de Démonstration',
+                        description: 'Premier test avec Supabase',
+                        total_questions: 3,
+                        subject: 'Mathématiques',
+                        level: 'Seconde'
+                    }
+                ];
+                
+                renderQuizList();
+            } catch (error) {
+                console.error('Erreur:', error);
+                showNotification('Application chargée en mode démo', 'info');
+                renderQuizList();
+            }
+        }
+
+        function renderQuizList() {
+            const container = document.getElementById('quizList');
+            container.innerHTML = '';
+
+            if (state.quizzes.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #6b7280; grid-column: 1 / -1;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">📚</div>
+                        <p>Aucun quiz créé pour le moment</p>
+                        <p style="margin-top: 1rem; font-size: 0.9rem;">Utilisez l'import XML pour commencer !</p>
+                    </div>
+                `;
+                return;
+            }
+
+            state.quizzes.forEach(quiz => {
+                const div = document.createElement('div');
+                div.className = 'quiz-item';
+                div.innerHTML = `
+                    <h3 style="font-weight: bold; font-size: 1.125rem; color: #1f2937; margin-bottom: 0.5rem;">${quiz.title}</h3>
+                    <p style="color: #6b7280; margin-bottom: 0.5rem;">${quiz.total_questions || 0} questions • ${quiz.subject || 'Mathématiques'} • ${quiz.level || 'Seconde'}</p>
+                    <p style="color: #6b7280; margin-bottom: 1rem; font-size: 0.875rem;">${quiz.description || 'Aucune description'}</p>
+                    <div class="quiz-actions">
+                        <button class="btn-purple" onclick="startLiveSession('${quiz.id}')">▶️ Session</button>
+                        <button class="btn btn-green" onclick="showNotification('Fonctionnalité bientôt disponible', 'info')">📁 XML</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function startLiveSession(quizId) {
+            showNotification('🔌 Connexion WebSocket...', 'info');
+            // Simulation de session
+            setTimeout(() => {
+                const roomCode = generateRoomCode();
+                showLiveSession({ roomCode });
+                showNotification(`Session créée : ${roomCode}`, 'success');
+            }, 1000);
+        }
+
+        function showLiveSession(sessionData) {
+            state.currentSession = sessionData;
+            
+            document.getElementById('liveSession').classList.remove('hidden');
+            document.getElementById('sessionQuizTitle').textContent = 'Quiz de Démonstration';
+            document.getElementById('sessionRoomCode').textContent = sessionData.roomCode;
+            document.getElementById('participantsCount').textContent = '0';
+            document.getElementById('sessionStatus').textContent = 'En attente...';
+            
+            const studentUrl = `https://adatil.github.io/mathquiz-supabase/student.html?room=${sessionData.roomCode}`;
+            showNotification(`URL élèves: ${studentUrl}`, 'info');
+        }
+
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 6; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        function downloadExampleXML() {
+            const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<quiz title="Équations et Fonctions - Seconde">
+    <question time="45" correct="0">
+        <text>Résoudre l'équation : $$x^2 - 5x + 6 = 0$$</text>
+        <option>$$x = 2$$ ou $$x = 3$$</option>
+        <option>$$x = 1$$ ou $$x = 6$$</option>
+        <option>$$x = -2$$ ou $$x = -3$$</option>
+        <option>$$x = 0$$ ou $$x = 5$$</option>
+    </question>
+    
+    <question time="50" correct="2">
+        <text>Quelle est la dérivée de $$f(x) = 3x^2 + 2x - 1$$ ?</text>
+        <option>$$f'(x) = 3x + 2$$</option>
+        <option>$$f'(x) = 6x^2 + 2x$$</option>
+        <option>$$f'(x) = 6x + 2$$</option>
+        <option>$$f'(x) = x^2 + x$$</option>
+    </question>
+</quiz>`;
+
+            const blob = new Blob([xml], { type: 'application/xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'quiz-exemple.xml';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function loadQuestionsFromFile(event) {
+            showNotification('Import XML sera disponible dans la prochaine version', 'info');
+        }
+
+        function showAnalytics() {
+            showNotification('Statistiques bientôt disponibles', 'info');
+        }
+
+        // Event listeners pour les boutons de session
+        document.getElementById('startQuizBtn').addEventListener('click', () => {
+            showNotification('Quiz simulé démarré !', 'success');
+            document.getElementById('sessionStatus').textContent = 'Quiz en cours...';
+        });
+
+        document.getElementById('closeSessionBtn').addEventListener('click', () => {
+            document.getElementById('liveSession').classList.add('hidden');
+            showNotification('Session fermée', 'info');
+        });
+    </script>
+</body>
+</html>
