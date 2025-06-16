@@ -1,0 +1,40 @@
+{
+  "version": 2,
+  "name": "mathquiz-supabase",
+  "outputDirectory": "docs",
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "routes": [
+    {
+      "src": "/",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/student",
+      "dest": "/student.html"
+    },
+    {
+      "src": "/eleve",
+      "dest": "/student.html"
+    },
+    {
+      "src": "/prof",
+      "dest": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        }
+      ]
+    }
+  ]
+}
