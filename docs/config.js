@@ -76,7 +76,7 @@ async function apiCall(endpoint, options = {}) {
 }
 
 // Session Management Functions
-const SessionAPI = {
+window.SessionAPI = {
     // Generate room code
     async generateRoomCode() {
         return await apiCall('/generate-code');
