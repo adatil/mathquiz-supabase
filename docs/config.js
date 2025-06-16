@@ -1,5 +1,5 @@
 // Configuration MathQuiz - Production
-window.CONFIG = {
+const CONFIG = {
     // Supabase Configuration
     SUPABASE_URL: 'https://ctakwbfqkcfqfwkdqedl.supabase.co',
     SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0YWt3YmZxa2NmcWZ3a2RxZWRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAwNzIwOTgsImV4cCI6MjA2NTY0ODA5OH0.HbqQNFm49c5W2vXVWWKPXlmJTXaSzBBF39FgWO7Q-KY',
@@ -76,7 +76,7 @@ async function apiCall(endpoint, options = {}) {
 }
 
 // Session Management Functions
-window.SessionAPI = {
+const SessionAPI = {
     // Generate room code
     async generateRoomCode() {
         return await apiCall('/generate-code');
