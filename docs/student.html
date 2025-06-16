@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathQuiz - Interface Élève</title>
+    
+    <!-- Configuration -->
+    <script src="config.js"></script>
+    
+    <!-- MathJax -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                    console.log('MathJax chargé !');
+                }
+            }
+        };
+    </script>
+    <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 1rem;
+            color: white;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            flex-shrink: 0;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            color: #1f2937;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .card-center {
+            text-align: center;
+        }
+
+        .hidden { display: none !important; }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #374151;
+            font-size: 1.1rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 1rem;
+            border: 3px solid #e5e7eb;
+            border-radius: 0.75rem;
+            font-size: 1.2rem;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.2rem;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
+            transform: scale(1.02);
+        }
+
+        .form-input.name-input {
+            text-transform: none;
+            letter-spacing: normal;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 1.2rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: bold;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover:not(:disabled) { 
+            transform: translateY(-2px); 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled { 
+            opacity: 0.6; 
+            cursor: not-allowed; 
+            transform: none;
+        }
+
+        .btn-primary { 
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; 
+        }
+
+        .btn-success { 
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white; 
+        }
+
+        .btn-danger { 
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white; 
+        }
+
+        .status {
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .status-waiting { 
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: white;
+        }
+
+        .status-connected { 
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .status-error { 
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .connection-indicator {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            z-index: 1000;
+        }
+
+        .connection-indicator.connected { background: #10b981; }
+        .connection-indicator.disconnected { background: #ef4444; }
+        .connection-indicator.connecting { 
+            background: #f59e0b; 
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 3px solid white;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .slide-in {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(30px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        @media (max-width: 480px) {
+            .title { font-size: 2rem; }
+            .card { padding: 1.5rem; margin-bottom: 1rem; }
+        }
+
+        .demo-info {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Indicateur de connexion -->
+    <div id="connectionIndicator" class="connection-indicator disconnected"></div>
+
+    <div class="container">
+        <div class="header">
+            <h1 class="title">MathQuiz</h1>
+            <p class="subtitle">Interface Élève</p>
+        </div>
+
+        <!-- Écran de connexion -->
+        <div id="joinScreen" class="slide-in">
+            <div class="card card-center">
+                <h2 style="margin-bottom: 2rem; color: #1f2937;">Rejoindre un Quiz</h2>
+                
+                <form id="joinForm">
+                    <div class="form-group">
+                        <label class="form-label">Code de la salle :</label>
+                        <input 
+                            type="text" 
+                            id="roomCode" 
+                            class="form-input" 
+                            placeholder="ABC123"
+                            maxlength="6"
+                            required
+                            autocomplete="off"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Votre prénom :</label>
+                        <input 
+                            type="text" 
+                            id="studentName" 
+                            class="form-input name-input" 
+                            placeholder="Marie"
+                            maxlength="20"
+                            required
+                        >
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="joinBtn">
+                        <span id="joinBtnText">🚀 Rejoindre le Quiz</span>
+                        <div id="joinSpinner" class="spinner hidden"></div>
+                    </button>
+                </form>
+
+                <div class="demo-info">
+                    📱 <strong>Mode Démo</strong><br>
+                    WebSocket temps réel en cours de finalisation<br>
+                    Test avec code : <strong>DEMO01</strong>
+                </div>
+            </div>
+
+            <div id="connectionStatus" class="status status-waiting hidden">
+                <div class="spinner"></div>
+                <div style="margin-top: 0.5rem;">Connexion en cours...</div>
+            </div>
+        </div>
+
+        <!-- Écran d'attente -->
+        <div id="waitingScreen" class="hidden">
+            <div class="card card-center slide-in">
+                <h2 style="margin-bottom: 1rem; color: #1f2937;">✅ Connecté !</h2>
+                <p style="color: #6b7280; margin-bottom: 2rem;">
+                    Salle : <strong id="connectedRoomCode">ABC123</strong>
+                </p>
+                
+                <div class="status status-connected">
+                    🕐 En attente du démarrage du quiz...
+                </div>
+
+                <div style="margin-top: 2rem;">
+                    <p style="color: #6b7280; text-align: center;">
+                        <span id="waitingStudentsCount">1</span> élève(s) connecté(s)
+                    </p>
+                </div>
+
+                <button id="leaveBtn" class="btn btn-danger" style="margin-top: 2rem;">
+                    🚪 Quitter la Salle
+                </button>
+
+                <div class="demo-info">
+                    🎮 Interface prête !<br>
+                    En attente des fonctionnalités temps réel
+                </div>
+            </div>
+        </div>
+
+        <!-- Écran d'erreur -->
+        <div id="errorScreen" class="hidden">
+            <div class="card card-center">
+                <h2 style="margin-bottom: 1rem; color: #ef4444;">❌ Erreur</h2>
+                <p id="errorMessage" style="color: #6b7280; margin-bottom: 2rem; text-align: center;">
+                    Une erreur est survenue
+                </p>
+                
+                <button id="retryBtn" class="btn btn-primary">
+                    🔄 Réessayer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration depuis le fichier externe
+        const SUPABASE_URL = window.MATHQUIZ_CONFIG.SUPABASE_URL;
+        const SUPABASE_ANON_KEY = window.MATHQUIZ_CONFIG.SUPABASE_ANON_KEY;
+        const WEBSOCKET_URL = window.MATHQUIZ_CONFIG.WEBSOCKET_URL;
+
+        // État global de l'application
+        let state = {
+            websocket: null,
+            currentScreen: 'join',
+            roomCode: '',
+            studentId: '',
+            studentName: '',
+            sessionId: '',
+            isDemo: false
+        };
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            // Auto-remplir le code de salle depuis l'URL si présent
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomFromUrl = urlParams.get('room');
+            if (roomFromUrl) {
+                document.getElementById('roomCode').value = roomFromUrl.toUpperCase();
+            }
+
+            // Event listeners
+            setupEventListeners();
+            
+            // Vérifier la connectivité
+            updateConnectionIndicator('disconnected');
+        }
+
+        function updateConnectionIndicator(status) {
+            const indicator = document.getElementById('connectionIndicator');
+            indicator.className = `connection-indicator ${status}`;
+        }
+
+        function showScreen(screenName) {
+            const screens = ['joinScreen', 'waitingScreen', 'errorScreen'];
+            screens.forEach(screen => {
+                document.getElementById(screen).classList.add('hidden');
+            });
+            document.getElementById(screenName).classList.remove('hidden');
+            state.currentScreen = screenName;
+        }
+
+        function showConnectionStatus() {
+            document.getElementById('connectionStatus').style.display = 'block';
+            document.getElementById('joinBtn').disabled = true;
+            document.getElementById('joinBtnText').style.display = 'none';
+            document.getElementById('joinSpinner').classList.remove('hidden');
+        }
+
+        function hideConnectionStatus() {
+            document.getElementById('connectionStatus').style.display = 'none';
+            document.getElementById('joinBtn').disabled = false;
+            document.getElementById('joinBtnText').style.display = 'block';
+            document.getElementById('joinSpinner').classList.add('hidden');
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            showScreen('errorScreen');
+        }
+
+        function setupEventListeners() {
+            // Formulaire de connexion
+            document.getElementById('joinForm').addEventListener('submit', handleJoinRoom);
+            
+            // Boutons de contrôle
+            document.getElementById('leaveBtn').addEventListener('click', leaveRoom);
+            document.getElementById('retryBtn').addEventListener('click', () => {
+                resetState();
+                showScreen('joinScreen');
+            });
+            
+            // Auto-uppercase pour le code de salle
+            document.getElementById('roomCode').addEventListener('input', function(e) {
+                e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            });
+
+            // Auto-capitalize pour le prénom
+            document.getElementById('studentName').addEventListener('input', function(e) {
+                const value = e.target.value;
+                e.target.value = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+            });
+        }
+
+        function handleJoinRoom(e) {
+            e.preventDefault();
+            
+            const roomCode = document.getElementById('roomCode').value.trim();
+            const studentName = document.getElementById('studentName').value.trim();
+            
+            if (!roomCode || !studentName) {
+                showError('Veuillez remplir tous les champs');
+                return;
+            }
+
+            if (roomCode.length !== 6) {
+                showError('Le code de salle doit contenir 6 caractères');
+                return;
+            }
+
+            state.roomCode = roomCode.toUpperCase();
+            state.studentName = studentName;
+            
+            showConnectionStatus();
+            
+            // Mode démo pour DEMO01
+            if (roomCode.toUpperCase() === 'DEMO01') {
+                state.isDemo = true;
+                setTimeout(() => {
+                    handleJoinedRoom({
+                        roomCode: 'DEMO01',
+                        studentId: 'demo-student-' + Date.now(),
+                        sessionId: 'demo-session'
+                    });
+                }, 1500);
+                return;
+            }
+
+            // Tentative de connexion réelle (WebSocket à implémenter)
+            updateConnectionIndicator('connecting');
+            setTimeout(() => {
+                updateConnectionIndicator('disconnected');
+                hideConnectionStatus();
+                showError('Service WebSocket en cours de déploiement.\nUtilisez le code DEMO01 pour tester.');
+            }, 2000);
+        }
+
+        function handleJoinedRoom(data) {
+            console.log('✅ Rejoint la salle:', data);
+            
+            state.roomCode = data.roomCode;
+            state.studentId = data.studentId;
+            state.sessionId = data.sessionId;
+            
+            document.getElementById('connectedRoomCode').textContent = data.roomCode;
+            hideConnectionStatus();
+            showScreen('waitingScreen');
+            
+            if (state.isDemo) {
+                updateConnectionIndicator('connected');
+                setTimeout(() => {
+                    document.getElementById('waitingStudentsCount').textContent = Math.floor(Math.random() * 5) + 1;
+                }, 1000);
+            }
+        }
+
+        function leaveRoom() {
+            if (confirm('Êtes-vous sûr de vouloir quitter la salle ?')) {
+                resetState();
+                showScreen('joinScreen');
+            }
+        }
+
+        function resetState() {
+            if (state.websocket) {
+                state.websocket.close();
+                state.websocket = null;
+            }
+            
+            state.roomCode = '';
+            state.studentId = '';
+            state.sessionId = '';
+            state.isDemo = false;
+            
+            updateConnectionIndicator('disconnected');
+        }
+
+        // Empêcher le zoom sur double-tap (iOS)
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+
+        // Vibration feedback (si supporté)
+        function vibrate(pattern = [100]) {
+            if ('vibrate' in navigator) {
+                navigator.vibrate(pattern);
+            }
+        }
+
+        // Gestion de la connectivité
+        window.addEventListener('online', () => {
+            updateConnectionIndicator('connected');
+        });
+
+        window.addEventListener('offline', () => {
+            updateConnectionIndicator('disconnected');
+            showError('Connexion Internet perdue');
+        });
+
+        console.log('🎓 Interface Élève MathQuiz initialisée');
+        console.log('🔗 Configuration Supabase:', SUPABASE_URL);
+    </script>
+</body>
+</html>
