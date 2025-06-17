@@ -825,17 +825,17 @@
                 updateConnectionIndicator(false);
             });
 
-            window.wsManager.on('quiz_started', (data) => {
+            window.wsManager.on('start_quiz', (data) => {
                 console.log('🚀 Quiz démarré:', data);
                 startQuiz(data);
             });
 
-            window.wsManager.on('new_question', (data) => {
+            window.wsManager.on('next_question', (data) => {
                 console.log('➡️ Nouvelle question:', data);
                 showNewQuestion(data);
             });
 
-            window.wsManager.on('quiz_ended', (data) => {
+            window.wsManager.on('quiz_finished', (data) => {
                 console.log('🏁 Quiz terminé:', data);
                 showFinalResults(data);
             });
