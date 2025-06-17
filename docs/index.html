@@ -3,12 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathQuiz Live - Interface Professeur</title>
+    <title>MathQuiz - Interface Professeur</title>
     
-    <!-- Configuration -->
-    <script src="config.js"></script>
-    
-    <!-- MathJax Configuration et Import -->
+    <!-- MathJax Configuration -->
     <script>
         window.MathJax = {
             tex: {
@@ -19,21 +16,10 @@
             },
             options: {
                 skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
-            },
-            startup: {
-                ready: () => {
-                    MathJax.startup.defaultReady();
-                    console.log('✅ MathJax chargé !');
-                }
             }
         };
     </script>
-    <script type="text/javascript" id="MathJax-script" async
-        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
-    </script>
-    
-    <!-- Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     
     <style>
         * {
@@ -50,136 +36,163 @@
         }
 
         .container {
-            min-height: 100vh;
-            padding: 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
         }
 
-        .max-w-6xl { max-width: 72rem; margin: 0 auto; }
-        .max-w-4xl { max-width: 56rem; margin: 0 auto; }
-        .text-center { text-align: center; }
-        .hidden { display: none; }
+        .header {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+        }
 
         .title {
-            font-size: 3rem;
+            font-size: 2.5rem;
             font-weight: bold;
-            color: white;
-            margin-bottom: 1rem;
-            text-shadow: 0 4px 8px rgba(0,0,0,0.3);
-        }
-
-        .subtitle {
-            font-size: 1.25rem;
-            color: rgba(255, 255, 255, 0.9);
-            margin-bottom: 2rem;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .card {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 1rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            padding: 1.5rem;
-            backdrop-filter: blur(10px);
-        }
-
-        .btn {
-            padding: 2rem;
-            border-radius: 1rem;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 1rem;
-            font-weight: bold;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            color: white;
-        }
-
-        .btn:hover { transform: scale(1.05); }
-        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-
-        .btn-green { background: linear-gradient(135deg, #10b981, #059669); }
-        .btn-yellow { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        .btn-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-        .btn-purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
-        .btn-red { background: linear-gradient(135deg, #ef4444, #dc2626); }
-        .btn-gray { background: linear-gradient(135deg, #6b7280, #4b5563); }
-
-        .quiz-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1rem;
-        }
-
-        .quiz-item {
-            background: #f9fafb;
-            border-radius: 0.75rem;
-            padding: 1rem;
-            border: 2px solid #e5e7eb;
-            transition: all 0.3s;
-        }
-
-        .quiz-item:hover { 
-            border-color: #a855f7; 
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
-
-        .quiz-actions {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 1rem;
-        }
-
-        .quiz-actions button {
-            flex: 1;
-            padding: 0.5rem;
-            border-radius: 0.5rem;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 0.9rem;
-            color: white;
-        }
-
-        /* Session Live Controls */
-        .session-controls {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 1rem;
-            padding: 2rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-        }
-
-        .room-code-display {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-            color: white;
-            padding: 2rem;
-            border-radius: 1rem;
-            text-align: center;
-            margin-bottom: 1rem;
-        }
-
-        .room-code {
-            font-size: 3rem;
-            font-weight: bold;
-            letter-spacing: 0.5rem;
+            color: #2d3748;
             margin-bottom: 0.5rem;
         }
 
+        .subtitle {
+            color: #718096;
+            font-size: 1.2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .hidden { display: none; }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn:hover { transform: translateY(-2px); }
+
+        .btn-primary { background: #4299e1; color: white; }
+        .btn-primary:hover { background: #3182ce; }
+
+        .btn-success { background: #48bb78; color: white; }
+        .btn-success:hover { background: #38a169; }
+
+        .btn-danger { background: #f56565; color: white; }
+        .btn-danger:hover { background: #e53e3e; }
+
+        .btn-warning { background: #ed8936; color: white; }
+        .btn-warning:hover { background: #dd6b20; }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .form-input, .form-textarea, .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-input:focus, .form-textarea:focus, .form-select:focus {
+            outline: none;
+            border-color: #4299e1;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 4rem;
+        }
+
+        /* Grid */
+        .grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+        /* Status indicators */
+        .status {
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .status-waiting { background: #fbb6ce; color: #97266d; }
+        .status-active { background: #9ae6b4; color: #276749; }
+        .status-finished { background: #90cdf4; color: #2c5282; }
+
+        /* Question preview */
+        .question-preview {
+            border: 2px dashed #cbd5e0;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .question-item {
+            background: #f7fafc;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .question-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .question-actions .btn {
+            padding: 0.25rem 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        /* Game interface */
+        .game-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: #edf2f7;
+            border-radius: 0.5rem;
+        }
+
         .participants-list {
-            max-height: 400px;
+            max-height: 300px;
             overflow-y: auto;
-            border: 1px solid #e5e7eb;
+            border: 1px solid #e2e8f0;
             border-radius: 0.5rem;
             padding: 1rem;
         }
@@ -188,1034 +201,604 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.75rem;
-            background: #f9fafb;
-            border-radius: 0.5rem;
-            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            border-bottom: 1px solid #e2e8f0;
         }
 
-        .participant-name {
-            font-weight: 600;
-            color: #1f2937;
+        .participant-item:last-child {
+            border-bottom: none;
         }
 
-        .participant-status {
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .status-connected { background: #dcfce7; color: #166534; }
-        .status-disconnected { background: #fee2e2; color: #991b1b; }
-
-        .live-game-controls {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-
-        .live-game-controls button {
-            flex: 1;
-            padding: 1rem;
-            border: none;
-            border-radius: 0.75rem;
+        .participant-score {
             font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-            color: white;
-        }
-
-        /* Question Display */
-        .current-question-display {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 1rem;
-            padding: 2rem;
-            margin-bottom: 1.5rem;
-            text-align: center;
-        }
-
-        .question-text-large {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #1f2937;
-            margin-bottom: 1rem;
-            min-height: 3rem;
-        }
-
-        .answers-preview {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-
-        .answer-preview {
-            padding: 1rem;
-            border-radius: 0.75rem;
-            font-weight: 600;
-            color: white;
-        }
-
-        .answer-red { background: linear-gradient(135deg, #ef4444, #dc2626); }
-        .answer-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-        .answer-yellow { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        .answer-green { background: linear-gradient(135deg, #10b981, #059669); }
-
-        .correct-answer { border: 4px solid #22c55e; }
-
-        /* Stats */
-        .live-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #f9fafb, #e5e7eb);
-            padding: 1.5rem;
-            border-radius: 0.75rem;
-            text-align: center;
-        }
-
-        .stat-number {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #1f2937;
-        }
-
-        .stat-label {
-            color: #6b7280;
-            font-size: 0.875rem;
-            margin-top: 0.25rem;
-        }
-
-        /* Form Styles */
-        .form-group { margin-bottom: 1.5rem; }
-        .form-label {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: #374151;
-            margin-bottom: 0.5rem;
-        }
-
-        .form-input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            font-size: 1rem;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        /* Status Messages */
-        .status-message {
-            padding: 1rem;
-            border-radius: 0.75rem;
-            margin-bottom: 1rem;
-            font-weight: 600;
-        }
-
-        .status-success {
-            background: #dcfce7;
-            color: #166534;
-            border: 1px solid #bbf7d0;
-        }
-
-        .status-error {
-            background: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #fecaca;
-        }
-
-        .status-warning {
-            background: #fef3c7;
-            color: #92400e;
-            border: 1px solid #fde68a;
-        }
-
-        .status-info {
-            background: #dbeafe;
-            color: #1e40af;
-            border: 1px solid #bfdbfe;
+            color: #4299e1;
         }
 
         /* Responsive */
         @media (max-width: 768px) {
+            .container { padding: 1rem; }
             .title { font-size: 2rem; }
-            .room-code { font-size: 2rem; }
-            .answers-preview { grid-template-columns: 1fr; }
-            .grid { grid-template-columns: 1fr; }
+            .grid-2, .grid-4 { grid-template-columns: 1fr; }
+            .game-status { flex-direction: column; gap: 1rem; }
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .alert-error {
+            background: #fed7d7;
+            color: #c53030;
+            border: 1px solid #feb2b2;
+        }
+
+        .alert-success {
+            background: #c6f6d5;
+            color: #2f855a;
+            border: 1px solid #9ae6b4;
+        }
+
+        .alert-info {
+            background: #bee3f8;
+            color: #2c5282;
+            border: 1px solid #90cdf4;
         }
     </style>
 </head>
 <body>
-    <div id="app">
-        <!-- Page d'accueil -->
-        <div id="home" class="container">
-            <div class="max-w-6xl">
-                <div class="text-center">
-                    <h1 class="title">MathQuiz Live</h1>
-                    <p class="subtitle">Quiz interactifs en temps réel pour vos cours de mathématiques</p>
-                </div>
-
-                <div id="connectionStatus" class="status-message status-info hidden">
-                    <span id="connectionText">🔗 Connexion à Supabase...</span>
-                </div>
-
-                <div class="grid">
-                    <button class="btn btn-green" onclick="showCreateView()">
-                        <div style="font-size: 3rem; margin-bottom: 1rem;">➕</div>
-                        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Créer un Quiz</h3>
-                        <p style="opacity: 0.8;">Nouvelles questions</p>
-                    </button>
-                    
-                    <button class="btn btn-yellow" onclick="document.getElementById('fileInput').click()">
-                        <div style="font-size: 3rem; margin-bottom: 1rem;">📁</div>
-                        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Charger XML</h3>
-                        <p style="opacity: 0.8;">Importer questions</p>
-                    </button>
-                    <input type="file" id="fileInput" accept=".xml" style="display: none;" onchange="loadQuestionsFromFile(event)">
-                    
-                    <button class="btn btn-purple" onclick="downloadExampleXML()">
-                        <div style="font-size: 3rem; margin-bottom: 1rem;">📄</div>
-                        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Exemple XML</h3>
-                        <p style="opacity: 0.8;">Télécharger modèle</p>
-                    </button>
-                    
-                    <button class="btn btn-blue" onclick="showStudentAccess()">
-                        <div style="font-size: 3rem; margin-bottom: 1rem;">📱</div>
-                        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Accès Élèves</h3>
-                        <p style="opacity: 0.8;">URL & QR Code</p>
-                    </button>
-                </div>
-
-                <div class="card">
-                    <h2 style="font-size: 1.5rem; font-weight: bold; color: #1f2937; margin-bottom: 1.5rem;">
-                        🏆 Mes Quiz
-                    </h2>
-                    
-                    <div id="quizList" class="quiz-grid">
-                        <!-- Quiz seront ajoutés ici -->
-                    </div>
-                </div>
-            </div>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">🎯 MathQuiz</h1>
+            <p class="subtitle">Interface Professeur - Créez et gérez vos quiz interactifs</p>
         </div>
 
-        <!-- Session Live -->
-        <div id="liveSession" class="container hidden">
-            <div class="max-w-6xl">
-                <!-- Header avec code de salle -->
-                <div class="session-controls">
-                    <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 1rem;">
-                        <h1 style="font-size: 1.5rem; color: #1f2937; font-weight: bold;">Session Live</h1>
-                        <button class="btn-red" style="padding: 0.5rem 1rem; border-radius: 0.5rem;" onclick="endSession()">🔚 Terminer</button>
-                    </div>
-
-                    <div class="room-code-display">
-                        <h2 style="font-size: 1.2rem; margin-bottom: 0.5rem; opacity: 0.9;">Code de salle</h2>
-                        <div class="room-code" id="roomCodeDisplay">ABC123</div>
-                        <p style="opacity: 0.8;">Les élèves peuvent rejoindre sur : <strong id="studentUrlDisplay"></strong></p>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                        <!-- Participants -->
-                        <div>
-                            <h3 style="font-weight: bold; margin-bottom: 1rem; color: #1f2937;">
-                                👥 Participants (<span id="participantCount">0</span>)
-                            </h3>
-                            <div id="participantsList" class="participants-list">
-                                <div style="text-align: center; color: #6b7280; padding: 2rem;">
-                                    En attente des élèves...
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Contrôles de jeu -->
-                        <div>
-                            <h3 style="font-weight: bold; margin-bottom: 1rem; color: #1f2937;">
-                                🎮 Contrôles
-                            </h3>
-                            
-                            <div class="live-stats">
-                                <div class="stat-card">
-                                    <div class="stat-number" id="totalQuestions">0</div>
-                                    <div class="stat-label">Questions</div>
-                                </div>
-                                <div class="stat-card">
-                                    <div class="stat-number" id="currentQuestionNum">0</div>
-                                    <div class="stat-label">Question actuelle</div>
-                                </div>
-                            </div>
-
-                            <div class="live-game-controls">
-                                <button id="startQuizBtn" class="btn-green" onclick="startLiveQuiz()">
-                                    🚀 Démarrer le Quiz
-                                </button>
-                                <button id="nextQuestionBtn" class="btn-blue hidden" onclick="nextQuestion()">
-                                    ➡️ Question Suivante
-                                </button>
-                                <button id="pauseBtn" class="btn-yellow hidden" onclick="pauseQuiz()">
-                                    ⏸️ Pause
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+        <!-- Écran de création de quiz -->
+        <div id="createScreen">
+            <div class="card">
+                <h2 style="margin-bottom: 2rem; color: #2d3748;">📝 Créer un nouveau quiz</h2>
+                
+                <div class="form-group">
+                    <label class="form-label">Titre du quiz</label>
+                    <input type="text" id="quizTitle" class="form-input" placeholder="Ex: Équations du second degré">
                 </div>
 
-                <!-- Question Actuelle -->
-                <div id="currentQuestionDisplay" class="current-question-display hidden">
-                    <h3 style="color: #6b7280; margin-bottom: 1rem;">Question <span id="questionNumber">1</span></h3>
-                    <div id="currentQuestionText" class="question-text-large"></div>
-                    
-                    <div class="answers-preview">
-                        <div class="answer-preview answer-red" id="answerPreview0">A. Réponse 1</div>
-                        <div class="answer-preview answer-blue" id="answerPreview1">B. Réponse 2</div>
-                        <div class="answer-preview answer-yellow" id="answerPreview2">C. Réponse 3</div>
-                        <div class="answer-preview answer-green" id="answerPreview3">D. Réponse 4</div>
-                    </div>
-
-                    <div style="margin-top: 1rem; color: #6b7280;">
-                        ⏱️ Temps: <span id="questionTime">30</span>s
-                    </div>
+                <div class="form-group">
+                    <label class="form-label">Description (optionnelle)</label>
+                    <textarea id="quizDescription" class="form-textarea" placeholder="Décrivez le contenu de votre quiz..."></textarea>
                 </div>
-            </div>
-        </div>
 
-        <!-- Creation de quiz (interface simplifiée) -->
-        <div id="create" class="container hidden">
-            <div class="max-w-4xl">
-                <div class="card">
-                    <h1 style="font-size: 2rem; color: #1f2937; margin-bottom: 2rem;">Créer un Quiz Express</h1>
-                    
+                <div class="grid grid-2">
                     <div class="form-group">
-                        <label class="form-label">Titre du quiz</label>
-                        <input type="text" id="quickQuizTitle" class="form-input" placeholder="Ex: Équations du Second Degré" value="Quiz Express">
+                        <label class="form-label">Matière</label>
+                        <select id="quizSubject" class="form-select">
+                            <option value="Mathématiques">Mathématiques</option>
+                            <option value="Physique">Physique</option>
+                            <option value="Chimie">Chimie</option>
+                        </select>
                     </div>
-
-                    <div style="text-align: center;">
-                        <button class="btn btn-green" style="padding: 1rem 2rem; margin: 1rem;" onclick="createQuickQuiz('algebra')">
-                            📐 Quiz Algèbre (10 questions)
-                        </button>
-                        <button class="btn btn-blue" style="padding: 1rem 2rem; margin: 1rem;" onclick="createQuickQuiz('geometry')">
-                            📏 Quiz Géométrie (10 questions)
-                        </button>
-                        <button class="btn btn-purple" style="padding: 1rem 2rem; margin: 1rem;" onclick="createQuickQuiz('functions')">
-                            📈 Quiz Fonctions (10 questions)
-                        </button>
-                    </div>
-
-                    <div style="text-align: center; margin-top: 2rem;">
-                        <button class="btn-gray" style="padding: 0.75rem 2rem; border-radius: 0.5rem;" onclick="showHomeView()">
-                            ← Retour
-                        </button>
+                    <div class="form-group">
+                        <label class="form-label">Niveau</label>
+                        <select id="quizLevel" class="form-select">
+                            <option value="Seconde">Seconde</option>
+                            <option value="Première">Première</option>
+                            <option value="Terminale">Terminale</option>
+                        </select>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Accès élèves -->
-        <div id="studentAccess" class="container hidden">
-            <div class="max-w-4xl">
-                <div class="card text-center">
-                    <h1 style="font-size: 2rem; color: #1f2937; margin-bottom: 2rem;">📱 Accès Élèves</h1>
-                    
-                    <div style="background: #f9fafb; padding: 2rem; border-radius: 1rem; margin-bottom: 2rem;">
-                        <h3 style="color: #1f2937; margin-bottom: 1rem;">URL pour les élèves :</h3>
-                        <div style="background: white; padding: 1rem; border-radius: 0.5rem; font-family: monospace; font-size: 1.1rem; word-break: break-all; border: 2px dashed #8b5cf6;">
-                            https://adatil.github.io/mathquiz-supabase/student.html
+                <h3 style="margin: 2rem 0 1rem; color: #2d3748;">➕ Ajouter des questions</h3>
+                
+                <div class="question-preview">
+                    <div class="form-group">
+                        <label class="form-label">Question (LaTeX supporté : $$x^2 + 1$$)</label>
+                        <textarea id="questionText" class="form-textarea" placeholder="Ex: Résoudre l'équation $$x^2 - 5x + 6 = 0$$"></textarea>
+                    </div>
+
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Option A</label>
+                            <input type="text" id="option0" class="form-input" placeholder="$$x = 2$$ et $$x = 3$$">
                         </div>
-                        <button class="btn btn-blue" style="margin-top: 1rem; padding: 0.75rem 1.5rem;" onclick="copyStudentUrl()">
-                            📋 Copier l'URL
-                        </button>
+                        <div class="form-group">
+                            <label class="form-label">Option B</label>
+                            <input type="text" id="option1" class="form-input" placeholder="$$x = 1$$ et $$x = 6$$">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Option C</label>
+                            <input type="text" id="option2" class="form-input" placeholder="$$x = -2$$ et $$x = -3$$">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Option D</label>
+                            <input type="text" id="option3" class="form-input" placeholder="$$x = 0$$ et $$x = 5$$">
+                        </div>
                     </div>
 
-                    <div style="background: #f9fafb; padding: 2rem; border-radius: 1rem; margin-bottom: 2rem;">
-                        <h3 style="color: #1f2937; margin-bottom: 1rem;">Instructions pour les élèves :</h3>
-                        <ol style="text-align: left; color: #4b5563; line-height: 1.8;">
-                            <li>Aller sur l'URL ci-dessus avec leur téléphone/tablette</li>
-                            <li>Entrer le <strong>code de salle</strong> (6 caractères)</li>
-                            <li>Saisir leur <strong>prénom</strong></li>
-                            <li>Cliquer sur <strong>"Rejoindre le Quiz"</strong></li>
-                        </ol>
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label class="form-label">Bonne réponse</label>
+                            <select id="correctAnswer" class="form-select">
+                                <option value="0">Option A</option>
+                                <option value="1">Option B</option>
+                                <option value="2">Option C</option>
+                                <option value="3">Option D</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Temps limite (secondes)</label>
+                            <input type="number" id="questionTime" class="form-input" value="30" min="10" max="120">
+                        </div>
                     </div>
 
-                    <button class="btn-gray" style="padding: 0.75rem 2rem; border-radius: 0.5rem;" onclick="showHomeView()">
-                        ← Retour
+                    <button id="addQuestionBtn" class="btn btn-primary" onclick="addQuestion()">
+                        ➕ Ajouter cette question
+                    </button>
+                </div>
+
+                <div id="questionsPreview" class="hidden">
+                    <h4 style="margin: 1rem 0; color: #2d3748;">📋 Questions ajoutées (<span id="questionCount">0</span>)</h4>
+                    <div id="questionsList"></div>
+                </div>
+
+                <div style="margin-top: 2rem; text-align: center;">
+                    <button id="createQuizBtn" class="btn btn-success" onclick="createQuizSession()">
+                        🚀 Créer la session de quiz
                     </button>
                 </div>
             </div>
         </div>
+
+        <!-- Écran de session active -->
+        <div id="sessionScreen" class="hidden">
+            <div class="card">
+                <div class="game-status">
+                    <div>
+                        <h2 id="sessionTitle">Quiz en cours</h2>
+                        <p>Code de la salle : <strong id="roomCode">ABC123</strong></p>
+                    </div>
+                    <div class="status status-waiting" id="sessionStatus">En attente</div>
+                </div>
+
+                <div class="grid grid-2">
+                    <div>
+                        <h3 style="margin-bottom: 1rem;">👥 Participants connectés</h3>
+                        <div id="participantsList" class="participants-list">
+                            <p style="text-align: center; color: #718096;">Aucun participant pour le moment...</p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 style="margin-bottom: 1rem;">🎮 Contrôles</h3>
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            <button id="startQuizBtn" class="btn btn-success" onclick="startQuiz()">
+                                ▶️ Démarrer le quiz
+                            </button>
+                            <button id="nextQuestionBtn" class="btn btn-primary hidden" onclick="nextQuestion()">
+                                ⏭️ Question suivante
+                            </button>
+                            <button id="endQuizBtn" class="btn btn-danger hidden" onclick="endQuiz()">
+                                ⏹️ Terminer le quiz
+                            </button>
+                            <button class="btn btn-warning" onclick="copySessionLink()">
+                                🔗 Copier le lien élève
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="currentQuestionDisplay" class="hidden" style="margin-top: 2rem;">
+                    <div style="background: #edf2f7; padding: 1.5rem; border-radius: 0.5rem;">
+                        <h4>Question <span id="currentQuestionNumber">1</span> / <span id="totalQuestionsDisplay">5</span></h4>
+                        <div id="currentQuestionText" style="font-size: 1.2rem; margin: 1rem 0;"></div>
+                        <div id="questionTimer" style="font-weight: bold; color: #e53e3e;">⏰ 30s</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Écran de résultats -->
+        <div id="resultsScreen" class="hidden">
+            <div class="card">
+                <h2 style="text-align: center; margin-bottom: 2rem;">🏆 Résultats du Quiz</h2>
+                
+                <div id="finalResults"></div>
+                
+                <div style="text-align: center; margin-top: 2rem;">
+                    <button class="btn btn-primary" onclick="location.reload()">
+                        🔄 Créer un nouveau quiz
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages d'alerte -->
+        <div id="alertContainer"></div>
     </div>
 
     <script>
-        // État global de l'application
-        let appState = {
-            currentView: 'home',
-            quizzes: [],
-            currentSession: null,
-            currentQuiz: null,
+        // Configuration Supabase
+        const SUPABASE_URL = 'https://ctakwbfqkcfqfwkdqedl.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0YWt3YmZxa2NmcWZ3a2RxZWRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAwNzIwOTgsImV4cCI6MjA2NTY0ODA5OH0.HbqQNFm49c5W2vXVWWKPXlmJTXaSzBBF39FgWO7Q-KY';
+
+        // État global
+        let state = {
+            quiz: {
+                title: '',
+                description: '',
+                questions: []
+            },
+            session: null,
             participants: [],
             currentQuestionIndex: 0,
-            sessionStatus: 'idle', // idle, waiting, active, paused, finished
-            ws: null,
-            teacherId: 'teacher_' + Date.now()
+            websocket: null,
+            questionTimer: null
         };
 
-        // Initialisation de l'application
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('🚀 Démarrage MathQuiz Live');
+        // Utilitaires
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            alertContainer.appendChild(alert);
             
-            try {
-                // Attendre que la configuration soit chargée
-                await waitForConfig();
-                
-                // Initialiser Supabase
-                if (window.initializeSupabase) {
-                    window.initializeSupabase();
-                }
-
-                // Charger les quiz existants
-                await loadQuizzes();
-                
-                // Afficher le status de connexion
-                showConnectionStatus('✅ Connecté à Supabase', 'success');
-                
-                console.log('✅ Application initialisée');
-            } catch (error) {
-                console.error('❌ Erreur d\'initialisation:', error);
-                showConnectionStatus('❌ Erreur de connexion', 'error');
-            }
-        });
-
-        async function waitForConfig() {
-            return new Promise((resolve) => {
-                const checkConfig = () => {
-                    if (window.CONFIG && window.SessionAPI) {
-                        resolve();
-                    } else {
-                        setTimeout(checkConfig, 100);
-                    }
-                };
-                checkConfig();
-            });
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
         }
 
-        function showConnectionStatus(message, type) {
-            const statusEl = document.getElementById('connectionStatus');
-            const textEl = document.getElementById('connectionText');
-            
-            statusEl.className = `status-message status-${type}`;
-            textEl.textContent = message;
-            statusEl.classList.remove('hidden');
-            
-            if (type === 'success') {
-                setTimeout(() => {
-                    statusEl.classList.add('hidden');
-                }, 3000);
+        function renderMath() {
+            if (window.MathJax && MathJax.typesetPromise) {
+                MathJax.typesetPromise().catch(err => console.error('MathJax error:', err));
             }
         }
 
-        // Navigation
-        function showView(viewName) {
-            ['home', 'liveSession', 'create', 'studentAccess'].forEach(view => {
-                document.getElementById(view).classList.add('hidden');
-            });
-            document.getElementById(viewName).classList.remove('hidden');
-            appState.currentView = viewName;
-        }
+        // Gestion des questions
+        function addQuestion() {
+            const questionText = document.getElementById('questionText').value.trim();
+            const options = [
+                document.getElementById('option0').value.trim(),
+                document.getElementById('option1').value.trim(),
+                document.getElementById('option2').value.trim(),
+                document.getElementById('option3').value.trim()
+            ];
+            const correct = parseInt(document.getElementById('correctAnswer').value);
+            const time = parseInt(document.getElementById('questionTime').value);
 
-        function showHomeView() {
-            showView('home');
-            if (appState.ws) {
-                appState.ws.disconnect();
-            }
-            appState.currentSession = null;
-        }
-
-        function showCreateView() {
-            showView('create');
-        }
-
-        function showStudentAccess() {
-            showView('studentAccess');
-            document.getElementById('studentUrlDisplay').textContent = window.CONFIG?.STUDENT_URL || 'URL non disponible';
-        }
-
-        // Gestion des quiz
-        async function loadQuizzes() {
-            try {
-                // Pour le moment, utiliser des quiz exemple
-                appState.quizzes = [
-                    {
-                        id: 'quiz_algebra_1',
-                        title: 'Équations du Second Degré',
-                        subject: 'Algèbre',
-                        totalQuestions: 10,
-                        questions: generateAlgebraQuestions()
-                    },
-                    {
-                        id: 'quiz_geometry_1', 
-                        title: 'Géométrie Plane',
-                        subject: 'Géométrie',
-                        totalQuestions: 8,
-                        questions: generateGeometryQuestions()
-                    }
-                ];
-                
-                renderQuizList();
-            } catch (error) {
-                console.error('Erreur lors du chargement des quiz:', error);
-            }
-        }
-
-        function renderQuizList() {
-            const container = document.getElementById('quizList');
-            container.innerHTML = '';
-
-            appState.quizzes.forEach(quiz => {
-                const div = document.createElement('div');
-                div.className = 'quiz-item';
-                div.innerHTML = `
-                    <h3 style="font-weight: bold; font-size: 1.125rem; color: #1f2937; margin-bottom: 0.5rem;">${quiz.title}</h3>
-                    <p style="color: #6b7280; margin-bottom: 0.5rem;">${quiz.subject} • ${quiz.totalQuestions} questions</p>
-                    <div class="quiz-actions">
-                        <button class="btn-green" onclick="startLiveSession('${quiz.id}')">🔴 Session Live</button>
-                        <button class="btn-blue" onclick="exportQuizToXML('${quiz.id}')">📁 Export</button>
-                        <button class="btn-red" onclick="deleteQuiz('${quiz.id}')">🗑️ Suppr.</button>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        // Sessions Live
-        async function startLiveSession(quizId) {
-            try {
-                showConnectionStatus('🔄 Création de la session...', 'info');
-                
-                const quiz = appState.quizzes.find(q => q.id === quizId);
-                if (!quiz) {
-                    throw new Error('Quiz non trouvé');
-                }
-
-                // Créer une session via l'API
-                const sessionData = await window.SessionAPI.createSession(quizId, appState.teacherId);
-                
-                appState.currentSession = sessionData.session;
-                appState.currentQuiz = quiz;
-                appState.sessionStatus = 'waiting';
-                appState.currentQuestionIndex = 0;
-                appState.participants = [];
-
-                // Connecter WebSocket
-                connectWebSocket();
-
-                // Afficher l'interface de session
-                showView('liveSession');
-                updateSessionDisplay();
-                
-                showConnectionStatus('✅ Session créée !', 'success');
-                
-            } catch (error) {
-                console.error('Erreur création session:', error);
-                showConnectionStatus('❌ Erreur: ' + error.message, 'error');
-            }
-        }
-
-        function connectWebSocket() {
-            if (!appState.currentSession || !window.wsManager) return;
-
-            const sessionId = appState.currentSession.id;
-            const userType = 'teacher';
-            const userId = appState.teacherId;
-
-            window.wsManager.connect(sessionId, userType, userId);
-
-            // Écouter les événements WebSocket
-            window.wsManager.on('connected', () => {
-                console.log('✅ WebSocket connecté');
-            });
-
-            window.wsManager.on('user_joined', (data) => {
-                if (data.userType === 'student') {
-                    console.log('👨‍🎓 Nouvel élève connecté:', data.userId);
-                    updateParticipants();
-                }
-            });
-
-            window.wsManager.on('user_left', (data) => {
-                if (data.userType === 'student') {
-                    console.log('👋 Élève déconnecté:', data.userId);
-                    updateParticipants();
-                }
-            });
-
-            window.wsManager.on('answer_received', (data) => {
-                console.log('📝 Réponse reçue:', data);
-                // Traiter la réponse de l'élève
-            });
-
-            appState.ws = window.wsManager;
-        }
-
-        function updateSessionDisplay() {
-            if (!appState.currentSession || !appState.currentQuiz) return;
-
-            // Code de salle
-            document.getElementById('roomCodeDisplay').textContent = appState.currentSession.room_code;
-            document.getElementById('studentUrlDisplay').textContent = window.CONFIG?.STUDENT_URL || 'URL non disponible';
-            
-            // Stats
-            document.getElementById('totalQuestions').textContent = appState.currentQuiz.totalQuestions;
-            document.getElementById('currentQuestionNum').textContent = appState.currentQuestionIndex;
-            
-            // Contrôles selon le statut
-            updateGameControls();
-        }
-
-        function updateGameControls() {
-            const startBtn = document.getElementById('startQuizBtn');
-            const nextBtn = document.getElementById('nextQuestionBtn');
-            const pauseBtn = document.getElementById('pauseBtn');
-
-            // Reset
-            [startBtn, nextBtn, pauseBtn].forEach(btn => btn.classList.add('hidden'));
-
-            switch (appState.sessionStatus) {
-                case 'waiting':
-                    startBtn.classList.remove('hidden');
-                    startBtn.disabled = appState.participants.length === 0;
-                    break;
-                case 'active':
-                    nextBtn.classList.remove('hidden');
-                    pauseBtn.classList.remove('hidden');
-                    break;
-                case 'paused':
-                    startBtn.classList.remove('hidden');
-                    startBtn.textContent = '▶️ Reprendre';
-                    break;
-            }
-        }
-
-        async function updateParticipants() {
-            if (!appState.currentSession) return;
-
-            try {
-                const response = await window.SessionAPI.getParticipants(appState.currentSession.id);
-                appState.participants = response.participants || [];
-                
-                renderParticipants();
-                updateGameControls();
-                
-            } catch (error) {
-                console.error('Erreur mise à jour participants:', error);
-            }
-        }
-
-        function renderParticipants() {
-            const container = document.getElementById('participantsList');
-            const countEl = document.getElementById('participantCount');
-            
-            countEl.textContent = appState.participants.length;
-
-            if (appState.participants.length === 0) {
-                container.innerHTML = `
-                    <div style="text-align: center; color: #6b7280; padding: 2rem;">
-                        En attente des élèves...
-                    </div>
-                `;
+            if (!questionText || options.some(opt => !opt)) {
+                showAlert('Veuillez remplir tous les champs !', 'error');
                 return;
             }
 
-            container.innerHTML = appState.participants.map(participant => `
-                <div class="participant-item">
-                    <span class="participant-name">${participant.student_name}</span>
-                    <div>
-                        <span class="participant-status ${participant.is_connected ? 'status-connected' : 'status-disconnected'}">
-                            ${participant.is_connected ? 'Connecté' : 'Déconnecté'}
-                        </span>
-                        <span style="margin-left: 0.5rem; font-weight: bold; color: #8b5cf6;">
-                            ${participant.score} pts
-                        </span>
-                    </div>
-                </div>
-            `).join('');
+            const question = {
+                id: Date.now(),
+                question: questionText,
+                options: options,
+                correct: correct,
+                time: time
+            };
+
+            state.quiz.questions.push(question);
+            updateQuestionsPreview();
+            clearQuestionForm();
+            showAlert('Question ajoutée avec succès !', 'success');
         }
 
-        async function startLiveQuiz() {
-            try {
-                if (!appState.currentSession || !appState.currentQuiz) return;
+        function updateQuestionsPreview() {
+            const preview = document.getElementById('questionsPreview');
+            const count = document.getElementById('questionCount');
+            const list = document.getElementById('questionsList');
 
-                appState.sessionStatus = 'active';
-                appState.currentQuestionIndex = 0;
+            count.textContent = state.quiz.questions.length;
 
-                // Démarrer la session via API
-                await window.SessionAPI.startQuiz(appState.currentSession.id);
-
-                // Envoyer la première question via WebSocket
-                const question = appState.currentQuiz.questions[0];
-                window.wsManager.send({
-                    type: 'start_quiz',
-                    question: question,
-                    questionNumber: 1,
-                    totalQuestions: appState.currentQuiz.totalQuestions
-                });
-
-                // Afficher la question
-                displayCurrentQuestion();
-                updateSessionDisplay();
-
-                console.log('🚀 Quiz démarré');
+            if (state.quiz.questions.length > 0) {
+                preview.classList.remove('hidden');
+                list.innerHTML = state.quiz.questions.map((q, index) => `
+                    <div class="question-item">
+                        <p><strong>Q${index + 1}:</strong> ${q.question}</p>
+                        <p><strong>Réponse:</strong> ${q.options[q.correct]} (${q.time}s)</p>
+                        <div class="question-actions">
+                            <button class="btn btn-danger" onclick="removeQuestion(${index})">Supprimer</button>
+                        </div>
+                    </div>
+                `).join('');
                 
-            } catch (error) {
-                console.error('Erreur démarrage quiz:', error);
-                showConnectionStatus('❌ Erreur: ' + error.message, 'error');
+                setTimeout(renderMath, 100);
+            } else {
+                preview.classList.add('hidden');
             }
         }
 
-        function displayCurrentQuestion() {
-            const question = appState.currentQuiz.questions[appState.currentQuestionIndex];
+        function removeQuestion(index) {
+            state.quiz.questions.splice(index, 1);
+            updateQuestionsPreview();
+            showAlert('Question supprimée', 'info');
+        }
+
+        function clearQuestionForm() {
+            document.getElementById('questionText').value = '';
+            document.getElementById('option0').value = '';
+            document.getElementById('option1').value = '';
+            document.getElementById('option2').value = '';
+            document.getElementById('option3').value = '';
+            document.getElementById('correctAnswer').value = '0';
+            document.getElementById('questionTime').value = '30';
+        }
+
+        // Création de session
+        async function createQuizSession() {
+            const title = document.getElementById('quizTitle').value.trim();
+            const description = document.getElementById('quizDescription').value.trim();
+
+            if (!title || state.quiz.questions.length === 0) {
+                showAlert('Veuillez renseigner un titre et ajouter au moins une question !', 'error');
+                return;
+            }
+
+            state.quiz.title = title;
+            state.quiz.description = description;
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/quiz-sessions/create-session`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        quizData: state.quiz,
+                        teacherId: 'teacher-' + Date.now()
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    state.session = data.session;
+                    showSessionScreen(data.roomCode);
+                    showAlert('Session créée avec succès !', 'success');
+                    initWebSocket();
+                } else {
+                    showAlert('Erreur : ' + data.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error creating session:', error);
+                showAlert('Erreur de connexion', 'error');
+            }
+        }
+
+        function showSessionScreen(roomCode) {
+            document.getElementById('createScreen').classList.add('hidden');
+            document.getElementById('sessionScreen').classList.remove('hidden');
+            
+            document.getElementById('sessionTitle').textContent = state.quiz.title;
+            document.getElementById('roomCode').textContent = roomCode;
+            document.getElementById('totalQuestionsDisplay').textContent = state.quiz.questions.length;
+            
+            // Démarrer le polling des participants
+            pollParticipants();
+        }
+
+        // Gestion des participants
+        async function pollParticipants() {
+            if (!state.session) return;
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/quiz-sessions/session/${state.session.id}/participants`, {
+                    headers: {
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    updateParticipantsList(data.participants);
+                }
+            } catch (error) {
+                console.error('Error fetching participants:', error);
+            }
+
+            // Répéter toutes les 2 secondes
+            setTimeout(pollParticipants, 2000);
+        }
+
+        function updateParticipantsList(participants) {
+            const list = document.getElementById('participantsList');
+            
+            if (participants.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: #718096;">Aucun participant pour le moment...</p>';
+                return;
+            }
+
+            list.innerHTML = participants.map((p, index) => `
+                <div class="participant-item">
+                    <span>🎓 ${p.student_name}</span>
+                    <span class="participant-score">${p.score} pts</span>
+                </div>
+            `).join('');
+
+            state.participants = participants;
+        }
+
+        // Gestion du quiz
+        async function startQuiz() {
+            if (state.participants.length === 0) {
+                showAlert('Attendez qu\'au moins un élève se connecte !', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${SUPABASE_URL}/functions/v1/quiz-sessions/start-quiz`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sessionId: state.session.id
+                    })
+                });
+
+                if (response.ok) {
+                    document.getElementById('sessionStatus').textContent = 'Actif';
+                    document.getElementById('sessionStatus').className = 'status status-active';
+                    document.getElementById('startQuizBtn').classList.add('hidden');
+                    document.getElementById('nextQuestionBtn').classList.remove('hidden');
+                    document.getElementById('endQuizBtn').classList.remove('hidden');
+                    
+                    showCurrentQuestion();
+                    showAlert('Quiz démarré !', 'success');
+                } else {
+                    const data = await response.json();
+                    showAlert('Erreur : ' + data.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error starting quiz:', error);
+                showAlert('Erreur de connexion', 'error');
+            }
+        }
+
+        function showCurrentQuestion() {
+            const question = state.quiz.questions[state.currentQuestionIndex];
             if (!question) return;
 
             document.getElementById('currentQuestionDisplay').classList.remove('hidden');
-            document.getElementById('questionNumber').textContent = appState.currentQuestionIndex + 1;
+            document.getElementById('currentQuestionNumber').textContent = state.currentQuestionIndex + 1;
             document.getElementById('currentQuestionText').innerHTML = question.question;
-            document.getElementById('questionTime').textContent = question.time || 30;
+            
+            startQuestionTimer(question.time);
+            renderMath();
+        }
 
-            // Afficher les réponses
-            question.options.forEach((option, index) => {
-                const el = document.getElementById(`answerPreview${index}`);
-                el.innerHTML = `${String.fromCharCode(65 + index)}. ${option}`;
+        function startQuestionTimer(timeLimit) {
+            let timeLeft = timeLimit;
+            const timerEl = document.getElementById('questionTimer');
+            
+            if (state.questionTimer) {
+                clearInterval(state.questionTimer);
+            }
+            
+            state.questionTimer = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = `⏰ ${timeLeft}s`;
                 
-                // Marquer la bonne réponse
-                if (index === question.correct) {
-                    el.classList.add('correct-answer');
+                if (timeLeft <= 5) {
+                    timerEl.style.color = '#e53e3e';
+                } else if (timeLeft <= 10) {
+                    timerEl.style.color = '#ed8936';
                 } else {
-                    el.classList.remove('correct-answer');
+                    timerEl.style.color = '#2d3748';
                 }
-            });
-
-            // Rerender MathJax
-            setTimeout(() => {
-                if (window.MathJax && MathJax.typesetPromise) {
-                    MathJax.typesetPromise();
+                
+                if (timeLeft <= 0) {
+                    clearInterval(state.questionTimer);
+                    setTimeout(() => {
+                        if (state.currentQuestionIndex < state.quiz.questions.length - 1) {
+                            nextQuestion();
+                        } else {
+                            endQuiz();
+                        }
+                    }, 1000);
                 }
-            }, 100);
+            }, 1000);
         }
 
         function nextQuestion() {
-            if (appState.currentQuestionIndex < appState.currentQuiz.questions.length - 1) {
-                appState.currentQuestionIndex++;
-                
-                const question = appState.currentQuiz.questions[appState.currentQuestionIndex];
-                
-                // Envoyer via WebSocket
-                window.wsManager.send({
-                    type: 'next_question',
-                    question: question,
-                    questionNumber: appState.currentQuestionIndex + 1
-                });
+            if (state.questionTimer) {
+                clearInterval(state.questionTimer);
+            }
 
-                displayCurrentQuestion();
-                updateSessionDisplay();
-                
+            state.currentQuestionIndex++;
+            
+            if (state.currentQuestionIndex < state.quiz.questions.length) {
+                showCurrentQuestion();
             } else {
-                // Quiz terminé
                 endQuiz();
             }
         }
 
         function endQuiz() {
-            appState.sessionStatus = 'finished';
-            
-            window.wsManager.send({
-                type: 'quiz_finished',
-                finalResults: appState.participants
-            });
-
-            alert('Quiz terminé ! 🎉');
-            updateSessionDisplay();
-        }
-
-        function pauseQuiz() {
-            appState.sessionStatus = 'paused';
-            updateGameControls();
-        }
-
-        function endSession() {
-            if (confirm('Êtes-vous sûr de vouloir terminer la session ?')) {
-                if (appState.ws) {
-                    appState.ws.disconnect();
-                }
-                showHomeView();
-            }
-        }
-
-        // Création de quiz rapide
-        function createQuickQuiz(subject) {
-            const title = document.getElementById('quickQuizTitle').value || 'Quiz Express';
-            
-            let questions = [];
-            switch (subject) {
-                case 'algebra':
-                    questions = generateAlgebraQuestions();
-                    break;
-                case 'geometry':
-                    questions = generateGeometryQuestions();
-                    break;
-                case 'functions':
-                    questions = generateFunctionQuestions();
-                    break;
+            if (state.questionTimer) {
+                clearInterval(state.questionTimer);
             }
 
-            const newQuiz = {
-                id: 'quiz_' + Date.now(),
-                title: title + ' - ' + subject.charAt(0).toUpperCase() + subject.slice(1),
-                subject: subject,
-                totalQuestions: questions.length,
-                questions: questions
-            };
-
-            appState.quizzes.push(newQuiz);
-            renderQuizList();
-            showHomeView();
+            document.getElementById('sessionScreen').classList.add('hidden');
+            document.getElementById('resultsScreen').classList.remove('hidden');
             
-            showConnectionStatus('✅ Quiz créé !', 'success');
+            showFinalResults();
         }
 
-        // Générateurs de questions
-        function generateAlgebraQuestions() {
-            return [
-                {
-                    question: "Résoudre : $$x^2 - 5x + 6 = 0$$",
-                    options: ["$$x = 2$$ et $$x = 3$$", "$$x = 1$$ et $$x = 6$$", "$$x = -2$$ et $$x = -3$$", "$$x = 0$$ et $$x = 5$$"],
-                    correct: 0,
-                    time: 45
-                },
-                {
-                    question: "Développer : $$(x + 3)^2$$",
-                    options: ["$$x^2 + 6x + 9$$", "$$x^2 + 3x + 9$$", "$$x^2 + 6x + 6$$", "$$x^2 + 9$$"],
-                    correct: 0,
-                    time: 30
-                },
-                {
-                    question: "Factoriser : $$x^2 - 9$$",
-                    options: ["$$(x-3)(x+3)$$", "$$(x-9)(x+1)$$", "$$x(x-9)$$", "$$(x-3)^2$$"],
-                    correct: 0,
-                    time: 30
-                },
-                {
-                    question: "Si $$2x + 5 = 13$$, alors $$x = ?$$",
-                    options: ["$$4$$", "$$6$$", "$$8$$", "$$9$$"],
-                    correct: 0,
-                    time: 25
-                },
-                {
-                    question: "Quelle est la forme canonique de $$x^2 + 4x + 3$$ ?",
-                    options: ["$$(x + 2)^2 - 1$$", "$$(x + 2)^2 + 3$$", "$$(x + 1)^2 + 2$$", "$$(x + 4)^2 - 1$$"],
-                    correct: 0,
-                    time: 40
-                }
-            ];
+        function showFinalResults() {
+            const resultsContainer = document.getElementById('finalResults');
+            
+            // Trier les participants par score
+            const sortedParticipants = [...state.participants].sort((a, b) => b.score - a.score);
+            
+            resultsContainer.innerHTML = `
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <h3>🏆 Classement Final</h3>
+                    <p>Quiz: ${state.quiz.title}</p>
+                    <p>${state.quiz.questions.length} questions • ${sortedParticipants.length} participants</p>
+                </div>
+                
+                <div style="background: #edf2f7; padding: 1.5rem; border-radius: 0.5rem;">
+                    ${sortedParticipants.map((p, index) => {
+                        const medals = ['🥇', '🥈', '🥉'];
+                        const medal = medals[index] || '🏅';
+                        return `
+                            <div class="participant-item" style="font-size: 1.1rem;">
+                                <span>${medal} ${index + 1}. ${p.student_name}</span>
+                                <span class="participant-score">${p.score} pts</span>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
         }
 
-        function generateGeometryQuestions() {
-            return [
-                {
-                    question: "Dans un triangle rectangle, si $$a = 3$$ et $$b = 4$$, alors $$c = ?$$",
-                    options: ["$$5$$", "$$7$$", "$$6$$", "$$8$$"],
-                    correct: 0,
-                    time: 30
-                },
-                {
-                    question: "L'aire d'un cercle de rayon $$r = 5$$ cm est :",
-                    options: ["$$25\\pi$$ cm²", "$$10\\pi$$ cm²", "$$5\\pi$$ cm²", "$$50\\pi$$ cm²"],
-                    correct: 0,
-                    time: 25
-                },
-                {
-                    question: "La somme des angles d'un triangle est :",
-                    options: ["$$180°$$", "$$360°$$", "$$90°$$", "$$270°$$"],
-                    correct: 0,
-                    time: 20
-                }
-            ];
-        }
-
-        function generateFunctionQuestions() {
-            return [
-                {
-                    question: "Soit $$f(x) = 2x + 1$$. Calculer $$f(3)$$",
-                    options: ["$$7$$", "$$6$$", "$$5$$", "$$8$$"],
-                    correct: 0,
-                    time: 20
-                },
-                {
-                    question: "La dérivée de $$f(x) = x^3$$ est :",
-                    options: ["$$3x^2$$", "$$x^2$$", "$$3x$$", "$$x^3$$"],
-                    correct: 0,
-                    time: 25
-                }
-            ];
+        // WebSocket (optionnel pour les notifications en temps réel)
+        function initWebSocket() {
+            // Implémentation WebSocket si nécessaire
+            console.log('WebSocket initialized for session:', state.session.id);
         }
 
         // Utilitaires
-        function copyStudentUrl() {
-            const url = window.CONFIG?.STUDENT_URL || 'URL non disponible';
-            navigator.clipboard.writeText(url).then(() => {
-                showConnectionStatus('✅ URL copiée !', 'success');
+        function copySessionLink() {
+            const roomCode = document.getElementById('roomCode').textContent;
+            const studentUrl = `${window.location.origin}/mathquiz-supabase/student.html?room=${roomCode}`;
+            
+            navigator.clipboard.writeText(studentUrl).then(() => {
+                showAlert('Lien copié dans le presse-papiers !', 'success');
+            }).catch(() => {
+                showAlert(`Lien élève : ${studentUrl}`, 'info');
             });
         }
 
-        function deleteQuiz(quizId) {
-            if (confirm('Supprimer ce quiz ?')) {
-                appState.quizzes = appState.quizzes.filter(q => q.id !== quizId);
-                renderQuizList();
-            }
-        }
-
-        function downloadExampleXML() {
-            const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<quiz title="Équations du Second Degré - Seconde">
-    <question time="45" correct="0">
-        <text>Résoudre l'équation : $$x^2 - 5x + 6 = 0$$</text>
-        <option>$$x = 2$$ ou $$x = 3$$</option>
-        <option>$$x = 1$$ ou $$x = 6$$</option>
-        <option>$$x = -2$$ ou $$x = -3$$</option>
-        <option>$$x = 0$$ ou $$x = 5$$</option>
-    </question>
-    
-    <question time="40" correct="0">
-        <text>Quelle est la forme canonique de $$f(x) = x^2 + 4x + 3$$ ?</text>
-        <option>$$f(x) = (x + 2)^2 - 1$$</option>
-        <option>$$f(x) = (x + 4)^2 - 1$$</option>
-        <option>$$f(x) = (x + 1)^2 + 2$$</option>
-        <option>$$f(x) = (x + 2)^2 + 3$$</option>
-    </question>
-</quiz>`;
-
-            const blob = new Blob([xml], { type: 'application/xml' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'quiz-equations-exemple.xml';
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function exportQuizToXML(quizId) {
-            const quiz = appState.quizzes.find(q => q.id === quizId);
-            if (!quiz) return;
-
-            let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<quiz title="${quiz.title}">\n`;
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-focus sur le titre
+            document.getElementById('quizTitle').focus();
             
-            quiz.questions.forEach(q => {
-                xml += `    <question time="${q.time}" correct="${q.correct}">\n`;
-                xml += `        <text>${q.question}</text>\n`;
-                q.options.forEach(opt => {
-                    xml += `        <option>${opt}</option>\n`;
-                });
-                xml += `    </question>\n\n`;
-            });
-            
-            xml += `</quiz>`;
-
-            const blob = new Blob([xml], { type: 'application/xml' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${quiz.title.replace(/[^a-zA-Z0-9]/g, '-')}.xml`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        function loadQuestionsFromFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const parser = new DOMParser();
-                    const xml = parser.parseFromString(e.target.result, "text/xml");
-                    
-                    const quiz = parseXMLToQuiz(xml);
-                    if (quiz) {
-                        appState.quizzes.push(quiz);
-                        renderQuizList();
-                        showConnectionStatus(`✅ Quiz "${quiz.title}" chargé !`, 'success');
-                    }
-                } catch (error) {
-                    showConnectionStatus("❌ Erreur : " + error.message, 'error');
-                }
-            };
-            reader.readAsText(file);
-            event.target.value = '';
-        }
-
-        function parseXMLToQuiz(xml) {
-            const quizEl = xml.getElementsByTagName("quiz")[0];
-            if (!quizEl) {
-                throw new Error("Balise <quiz> manquante !");
-            }
-
-            const title = quizEl.getAttribute("title") || "Quiz sans titre";
-            const questionEls = quizEl.getElementsByTagName("question");
-            
-            if (questionEls.length === 0) {
-                throw new Error("Aucune question trouvée !");
-            }
-
-            const questions = [];
-            for (let i = 0; i < questionEls.length; i++) {
-                const qEl = questionEls[i];
-                const time = parseInt(qEl.getAttribute("time")) || 30;
-                const correct = parseInt(qEl.getAttribute("correct")) || 0;
-                
-                const textEl = qEl.getElementsByTagName("text")[0];
-                if (!textEl) {
-                    throw new Error(`Balise <text> manquante dans la question ${i + 1} !`);
-                }
-                
-                const optionEls = qEl.getElementsByTagName("option");
-                if (optionEls.length !== 4) {
-                    throw new Error(`La question ${i + 1} doit avoir 4 options !`);
-                }
-                
-                const options = Array.from(optionEls).map(el => el.textContent.trim());
-                
-                questions.push({
-                    question: textEl.textContent.trim(),
-                    options: options,
-                    correct: correct,
-                    time: time
-                });
-            }
-
-            return { 
-                id: 'quiz_' + Date.now(), 
-                title: title, 
-                subject: 'Import XML',
-                totalQuestions: questions.length,
-                questions: questions 
-            };
-        }
-
-        // Auto-refresh des participants pendant la session
-        setInterval(() => {
-            if (appState.currentSession && appState.sessionStatus !== 'idle') {
-                updateParticipants();
-            }
-        }, 5000);
-
+            // Rendu initial MathJax
+            setTimeout(renderMath, 500);
+        });
     </script>
 </body>
 </html>
