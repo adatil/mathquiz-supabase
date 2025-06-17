@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MathQuiz - Élève</title>
+    <title>MathQuiz Live - Élève</title>
+    
+    <!-- Configuration -->
+    <script src="config.js"></script>
     
     <!-- MathJax -->
     <script>
@@ -12,10 +15,19 @@
                 inlineMath: [['$', '$'], ['\\(', '\\)']],
                 displayMath: [['$$', '$$'], ['\\[', '\\]']],
                 processEscapes: true
+            },
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                    console.log('✅ MathJax chargé !');
+                }
             }
         };
     </script>
     <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
         * { 
@@ -54,6 +66,7 @@
             font-size: 2.5rem;
             font-weight: bold;
             margin-bottom: 0.5rem;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.3);
         }
 
         .subtitle {
@@ -98,8 +111,6 @@
             border-radius: 0.75rem;
             font-size: 1.2rem;
             text-align: center;
-            text-transform: uppercase;
-            letter-spacing: 0.2rem;
             font-weight: bold;
             transition: all 0.3s;
         }
@@ -111,9 +122,9 @@
             transform: scale(1.02);
         }
 
-        .form-input.name-input {
-            text-transform: none;
-            letter-spacing: normal;
+        .form-input.uppercase {
+            text-transform: uppercase;
+            letter-spacing: 0.2rem;
         }
 
         /* Boutons */
@@ -160,6 +171,11 @@
             color: white; 
         }
 
+        .btn-gray {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: white;
+        }
+
         /* Boutons de réponse */
         .answers-grid {
             display: grid;
@@ -184,6 +200,7 @@
             text-align: center;
             word-wrap: break-word;
             overflow-wrap: break-word;
+            line-height: 1.4;
         }
 
         .answer-btn:hover:not(:disabled) {
@@ -204,38 +221,43 @@
         .answer-red { 
             background: linear-gradient(135deg, #ef4444, #dc2626);
             color: white;
-            border: 3px solid #fee2e2;
+            border: 3px solid rgba(239, 68, 68, 0.3);
         }
 
         .answer-blue { 
             background: linear-gradient(135deg, #3b82f6, #2563eb);
             color: white;
-            border: 3px solid #dbeafe;
+            border: 3px solid rgba(59, 130, 246, 0.3);
         }
 
         .answer-yellow { 
             background: linear-gradient(135deg, #f59e0b, #d97706);
             color: white;
-            border: 3px solid #fef3c7;
+            border: 3px solid rgba(245, 158, 11, 0.3);
         }
 
         .answer-green { 
             background: linear-gradient(135deg, #10b981, #059669);
             color: white;
-            border: 3px solid #d1fae5;
+            border: 3px solid rgba(16, 185, 129, 0.3);
         }
 
         /* États des réponses */
         .answer-correct {
             background: linear-gradient(135deg, #22c55e, #16a34a) !important;
             border-color: #bbf7d0 !important;
-            animation: correctPulse 0.5s ease-out;
+            animation: correctPulse 0.8s ease-out;
         }
 
         .answer-incorrect {
             background: linear-gradient(135deg, #64748b, #475569) !important;
             border-color: #f1f5f9 !important;
-            animation: incorrectShake 0.5s ease-out;
+            animation: incorrectShake 0.6s ease-out;
+        }
+
+        .answer-selected {
+            transform: scale(0.95);
+            opacity: 0.8;
         }
 
         /* Question display */
@@ -265,8 +287,19 @@
         }
 
         .timer {
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             font-weight: bold;
+            color: #ef4444;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .timer.warning {
+            animation: timerWarning 1s infinite;
+            color: #f59e0b;
+        }
+
+        .timer.critical {
+            animation: timerCritical 0.5s infinite;
             color: #ef4444;
         }
 
@@ -291,6 +324,11 @@
 
         .status-error { 
             background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .status-info {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
             color: white;
         }
 
@@ -328,6 +366,22 @@
         .rank-number {
             font-size: 2rem;
             font-weight: bold;
+        }
+
+        /* Connection status */
+        .connection-indicator {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ef4444;
+            z-index: 1000;
+        }
+
+        .connection-indicator.connected {
+            background: #10b981;
         }
 
         /* Animations */
@@ -368,17 +422,14 @@
             animation: bounce 1s ease-out;
         }
 
-        /* Responsive */
-        @media (max-width: 480px) {
-            .title { font-size: 2rem; }
-            .card { padding: 1.5rem; margin-bottom: 1rem; }
-            .question-text { font-size: 1.1rem; }
-            .answer-btn { padding: 1.2rem; font-size: 1rem; }
+        @keyframes timerWarning {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
         }
 
-        @media (max-height: 600px) {
-            .header { margin-bottom: 1rem; }
-            .card { padding: 1.5rem; margin-bottom: 1rem; }
+        @keyframes timerCritical {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
         }
 
         /* Loading spinner */
@@ -397,80 +448,70 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Alerts */
-        .alert {
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin-bottom: 1rem;
-            text-align: center;
-            font-weight: 600;
+        /* Responsive */
+        @media (max-width: 480px) {
+            .title { font-size: 2rem; }
+            .card { padding: 1.5rem; margin-bottom: 1rem; }
+            .question-text { font-size: 1.1rem; }
+            .answer-btn { padding: 1.2rem; font-size: 1rem; }
         }
 
-        .alert-error {
-            background: #fed7d7;
-            color: #c53030;
-            border: 1px solid #feb2b2;
-        }
-
-        .alert-success {
-            background: #c6f6d5;
-            color: #2f855a;
-            border: 1px solid #9ae6b4;
-        }
-
-        .alert-info {
-            background: #bee3f8;
-            color: #2c5282;
-            border: 1px solid #90cdf4;
+        @media (max-height: 600px) {
+            .header { margin-bottom: 1rem; }
+            .card { padding: 1.5rem; margin-bottom: 1rem; }
         }
     </style>
 </head>
 <body>
+    <div class="connection-indicator" id="connectionIndicator"></div>
+    
     <div class="container">
         <div class="header">
-            <h1 class="title">🎯 MathQuiz</h1>
+            <h1 class="title">MathQuiz Live</h1>
             <p class="subtitle">Interface Élève</p>
         </div>
 
         <!-- Écran de connexion -->
         <div id="joinScreen" class="slide-in">
             <div class="card card-center">
-                <h2 style="margin-bottom: 2rem; color: #1f2937;">🚀 Rejoindre un Quiz</h2>
+                <h2 style="margin-bottom: 2rem; color: #1f2937;">Rejoindre un Quiz</h2>
                 
-                <div class="form-group">
-                    <label class="form-label">Code de la salle :</label>
-                    <input 
-                        type="text" 
-                        id="roomCode" 
-                        class="form-input" 
-                        placeholder="ABC123"
-                        maxlength="6"
-                        autocomplete="off"
-                    >
-                </div>
+                <form id="joinForm">
+                    <div class="form-group">
+                        <label class="form-label">Code de la salle :</label>
+                        <input 
+                            type="text" 
+                            id="roomCode" 
+                            class="form-input uppercase" 
+                            placeholder="ABC123"
+                            maxlength="6"
+                            required
+                            autocomplete="off"
+                        >
+                    </div>
 
-                <div class="form-group">
-                    <label class="form-label">Votre prénom :</label>
-                    <input 
-                        type="text" 
-                        id="studentName" 
-                        class="form-input name-input" 
-                        placeholder="Marie"
-                        maxlength="20"
-                    >
-                </div>
+                    <div class="form-group">
+                        <label class="form-label">Votre prénom :</label>
+                        <input 
+                            type="text" 
+                            id="studentName" 
+                            class="form-input" 
+                            placeholder="Marie"
+                            maxlength="20"
+                            required
+                        >
+                    </div>
 
-                <button id="joinBtn" class="btn btn-primary" onclick="joinSession()">
-                    🚀 Rejoindre le Quiz
-                </button>
+                    <button type="submit" class="btn btn-primary">
+                        🚀 Rejoindre le Quiz
+                    </button>
+                </form>
             </div>
 
-            <div id="connectionStatus" class="status status-waiting" style="display: none;">
+            <div id="connectionStatus" class="status status-waiting hidden">
                 <div class="spinner"></div>
                 <div style="margin-top: 0.5rem;">Connexion en cours...</div>
             </div>
-
-            <div id="alertContainer"></div>
         </div>
 
         <!-- Écran d'attente -->
@@ -491,7 +532,7 @@
                     </p>
                 </div>
 
-                <button id="leaveBtn" class="btn btn-danger" style="margin-top: 2rem;" onclick="leaveSession()">
+                <button id="leaveBtn" class="btn btn-danger" style="margin-top: 2rem;">
                     🚪 Quitter la Salle
                 </button>
             </div>
@@ -570,202 +611,310 @@
                     </div>
                 </div>
 
-                <button id="newGameBtn" class="btn btn-success" onclick="location.reload()">
+                <button id="newGameBtn" class="btn btn-success">
                     🔄 Nouveau Quiz
+                </button>
+            </div>
+        </div>
+
+        <!-- Écran d'erreur -->
+        <div id="errorScreen" class="hidden">
+            <div class="card card-center">
+                <h2 style="margin-bottom: 1rem; color: #ef4444;">❌ Erreur</h2>
+                <p id="errorMessage" style="color: #6b7280; margin-bottom: 2rem; text-align: center;">
+                    Une erreur est survenue
+                </p>
+                
+                <button id="retryBtn" class="btn btn-primary">
+                    🔄 Réessayer
                 </button>
             </div>
         </div>
     </div>
 
     <script>
-        // Configuration Supabase
-        const SUPABASE_URL = 'https://ctakwbfqkcfqfwkdqedl.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN0YWt3YmZxa2NmcWZ3a2RxZWRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAwNzIwOTgsImV4cCI6MjA2NTY0ODA5OH0.HbqQNFm49c5W2vXVWWKPXlmJTXaSzBBF39FgWO7Q-KY';
-
-        // État global
-        let state = {
-            participant: null,
-            session: null,
+        // État global de l'application
+        let studentState = {
+            currentScreen: 'join',
+            roomCode: '',
+            studentId: '',
+            studentName: '',
+            participantData: null,
+            sessionData: null,
             currentQuestion: null,
-            currentQuestionIndex: 0,
-            totalQuestions: 0,
             score: 0,
             questionsAnswered: 0,
             correctAnswers: 0,
             hasAnswered: false,
             timer: null,
-            startTime: null
+            questionStartTime: null,
+            ws: null,
+            connected: false
         };
 
-        // Utilitaires
-        function showAlert(message, type = 'info') {
-            const alertContainer = document.getElementById('alertContainer');
-            const alert = document.createElement('div');
-            alert.className = `alert alert-${type}`;
-            alert.textContent = message;
-            alertContainer.appendChild(alert);
+        // **INITIALISATION**
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Démarrage MathQuiz Live - Élève');
             
-            setTimeout(() => {
-                alert.remove();
-            }, 5000);
-        }
-
-        function renderMath() {
-            if (window.MathJax && MathJax.typesetPromise) {
-                MathJax.typesetPromise().catch(err => console.error('MathJax error:', err));
+            try {
+                // Attendre que la configuration soit chargée
+                await waitForConfig();
+                
+                // Initialiser Supabase
+                if (window.initializeSupabase) {
+                    window.initializeSupabase();
+                }
+                
+                // Auto-remplir le code de salle depuis l'URL si présent
+                const urlParams = new URLSearchParams(window.location.search);
+                const roomFromUrl = urlParams.get('room');
+                if (roomFromUrl) {
+                    document.getElementById('roomCode').value = roomFromUrl.toUpperCase();
+                }
+                
+                // Event listeners
+                setupEventListeners();
+                
+                // Indicateur de connexion
+                updateConnectionIndicator(false);
+                
+                console.log('✅ Interface élève initialisée');
+                
+            } catch (error) {
+                console.error('❌ Erreur d\'initialisation:', error);
+                showError('Erreur d\'initialisation. Rechargez la page.');
             }
+        });
+
+        async function waitForConfig() {
+            return new Promise((resolve) => {
+                const checkConfig = () => {
+                    if (window.CONFIG && window.SessionAPI && window.wsManager) {
+                        resolve();
+                    } else {
+                        setTimeout(checkConfig, 100);
+                    }
+                };
+                checkConfig();
+            });
         }
 
+        // **GESTION DES ÉCRANS**
         function showScreen(screenName) {
-            const screens = ['joinScreen', 'waitingScreen', 'gameScreen', 'resultsScreen'];
+            const screens = ['joinScreen', 'waitingScreen', 'gameScreen', 'resultsScreen', 'errorScreen'];
             screens.forEach(screen => {
                 document.getElementById(screen).classList.add('hidden');
             });
             document.getElementById(screenName).classList.remove('hidden');
+            studentState.currentScreen = screenName;
         }
 
-        // Rejoindre une session
-        async function joinSession() {
-            const roomCode = document.getElementById('roomCode').value.trim().toUpperCase();
+        function showConnectionStatus(show = true) {
+            const statusEl = document.getElementById('connectionStatus');
+            if (show) {
+                statusEl.classList.remove('hidden');
+            } else {
+                statusEl.classList.add('hidden');
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            showScreen('errorScreen');
+        }
+
+        function updateConnectionIndicator(connected) {
+            const indicator = document.getElementById('connectionIndicator');
+            if (connected) {
+                indicator.classList.add('connected');
+            } else {
+                indicator.classList.remove('connected');
+            }
+            studentState.connected = connected;
+        }
+
+        // **EVENT LISTENERS**
+        function setupEventListeners() {
+            // Formulaire de connexion
+            document.getElementById('joinForm').addEventListener('submit', handleJoinRoom);
+            
+            // Boutons de contrôle
+            document.getElementById('leaveBtn').addEventListener('click', leaveRoom);
+            document.getElementById('newGameBtn').addEventListener('click', () => {
+                resetState();
+                showScreen('joinScreen');
+            });
+            document.getElementById('retryBtn').addEventListener('click', () => showScreen('joinScreen'));
+            
+            // Auto-uppercase et validation pour le code de salle
+            document.getElementById('roomCode').addEventListener('input', function(e) {
+                e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            });
+
+            // Auto-capitalize pour le prénom
+            document.getElementById('studentName').addEventListener('input', function(e) {
+                const value = e.target.value;
+                e.target.value = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+            });
+        }
+
+        // **GESTION DES SALLES**
+        async function handleJoinRoom(e) {
+            e.preventDefault();
+            
+            const roomCode = document.getElementById('roomCode').value.trim();
             const studentName = document.getElementById('studentName').value.trim();
             
             if (!roomCode || !studentName) {
-                showAlert('Veuillez remplir tous les champs !', 'error');
+                alert('Veuillez remplir tous les champs');
                 return;
             }
 
             if (roomCode.length !== 6) {
-                showAlert('Le code de salle doit contenir 6 caractères', 'error');
+                alert('Le code de salle doit contenir 6 caractères');
                 return;
             }
 
-            document.getElementById('connectionStatus').style.display = 'block';
-            document.getElementById('joinBtn').disabled = true;
-
+            studentState.roomCode = roomCode;
+            studentState.studentName = studentName;
+            
+            showConnectionStatus(true);
+            
             try {
-                const response = await fetch(`${SUPABASE_URL}/functions/v1/quiz-sessions/join-session`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        roomCode: roomCode,
-                        studentName: studentName
-                    })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    state.participant = data.participant;
-                    state.session = data.session;
-                    
-                    document.getElementById('connectedRoomCode').textContent = roomCode;
-                    showScreen('waitingScreen');
-                    showAlert('Connexion réussie !', 'success');
-                    
-                    // Démarrer la surveillance du statut de la session
-                    pollSessionStatus();
-                } else {
-                    showAlert(data.error || 'Erreur de connexion', 'error');
-                }
+                // Rejoindre la session via l'API
+                const response = await window.SessionAPI.joinSession(roomCode, studentName);
+                
+                studentState.participantData = response.participant;
+                studentState.sessionData = response.session;
+                studentState.studentId = response.participant.id;
+                
+                // Connecter WebSocket
+                connectWebSocket();
+                
+                // Afficher l'écran d'attente
+                document.getElementById('connectedRoomCode').textContent = roomCode;
+                showScreen('waitingScreen');
+                showConnectionStatus(false);
+                
+                console.log('✅ Rejoint la session:', response);
+                
             } catch (error) {
-                console.error('Error joining session:', error);
-                showAlert('Erreur de connexion', 'error');
-            } finally {
-                document.getElementById('connectionStatus').style.display = 'none';
-                document.getElementById('joinBtn').disabled = false;
+                console.error('❌ Erreur connexion:', error);
+                showConnectionStatus(false);
+                showError('Code de salle invalide ou session non trouvée');
             }
         }
 
-        // Surveiller le statut de la session
-        async function pollSessionStatus() {
-            if (!state.session) return;
+        function connectWebSocket() {
+            if (!studentState.sessionData || !window.wsManager) return;
 
-            try {
-                const response = await fetch(`${SUPABASE_URL}/functions/v1/quiz-sessions/session/${state.session.id}/participants`, {
-                    headers: {
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-                    }
-                });
+            const sessionId = studentState.sessionData.id;
+            const userType = 'student';
+            const userId = studentState.studentId;
 
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    // Mettre à jour le nombre de participants
-                    document.getElementById('waitingStudentsCount').textContent = data.participants.length;
-                    
-                    // Vérifier si le quiz a commencé (logique simplifiée)
-                    // En production, vous utiliseriez WebSocket ou Server-Sent Events
-                    if (Math.random() < 0.1) { // Simulation pour la démo
-                        startGameDemo();
-                        return;
-                    }
-                }
-            } catch (error) {
-                console.error('Error polling session status:', error);
-            }
+            window.wsManager.connect(sessionId, userType, userId);
 
-            // Répéter toutes les 2 secondes
-            setTimeout(pollSessionStatus, 2000);
+            // Écouter les événements WebSocket
+            window.wsManager.on('connected', () => {
+                console.log('🔗 WebSocket connecté');
+                updateConnectionIndicator(true);
+            });
+
+            window.wsManager.on('disconnected', () => {
+                console.log('📵 WebSocket déconnecté');
+                updateConnectionIndicator(false);
+            });
+
+            window.wsManager.on('quiz_started', (data) => {
+                console.log('🚀 Quiz démarré:', data);
+                startQuiz(data);
+            });
+
+            window.wsManager.on('new_question', (data) => {
+                console.log('➡️ Nouvelle question:', data);
+                showNewQuestion(data);
+            });
+
+            window.wsManager.on('quiz_ended', (data) => {
+                console.log('🏁 Quiz terminé:', data);
+                showFinalResults(data);
+            });
+
+            window.wsManager.on('answer_confirmed', (data) => {
+                console.log('✅ Réponse confirmée:', data);
+                showAnswerFeedback(data);
+            });
+
+            window.wsManager.on('error', (error) => {
+                console.error('❌ Erreur WebSocket:', error);
+                showError('Erreur de connexion');
+            });
+
+            studentState.ws = window.wsManager;
         }
 
-        // Démarrer le jeu (version démo)
-        function startGameDemo() {
+        function leaveRoom() {
+            if (confirm('Êtes-vous sûr de vouloir quitter la salle ?')) {
+                if (studentState.ws) {
+                    studentState.ws.disconnect();
+                }
+                resetState();
+                showScreen('joinScreen');
+            }
+        }
+
+        function resetState() {
+            studentState.roomCode = '';
+            studentState.studentId = '';
+            studentState.studentName = '';
+            studentState.participantData = null;
+            studentState.sessionData = null;
+            studentState.currentQuestion = null;
+            studentState.score = 0;
+            studentState.questionsAnswered = 0;
+            studentState.correctAnswers = 0;
+            studentState.hasAnswered = false;
+            
+            if (studentState.timer) {
+                clearInterval(studentState.timer);
+                studentState.timer = null;
+            }
+            
+            updateConnectionIndicator(false);
+        }
+
+        // **GESTION DU JEU**
+        function startQuiz(data) {
+            studentState.currentQuestion = data.question;
+            document.getElementById('totalQuestions').textContent = data.totalQuestions;
+            
             showScreen('gameScreen');
-            
-            // Questions de démonstration
-            const demoQuestions = [
-                {
-                    question: "Résoudre : $$x^2 - 5x + 6 = 0$$",
-                    options: ["$$x = 2$$ et $$x = 3$$", "$$x = 1$$ et $$x = 6$$", "$$x = -2$$ et $$x = -3$$", "$$x = 0$$ et $$x = 5$$"],
-                    correct: 0,
-                    time: 30
-                },
-                {
-                    question: "Calculer : $$\\sqrt{16} + 3^2$$",
-                    options: ["$$13$$", "$$12$$", "$$25$$", "$$7$$"],
-                    correct: 0,
-                    time: 25
-                },
-                {
-                    question: "Quelle est la dérivée de $$f(x) = 3x^2 + 2x$$?",
-                    options: ["$$f'(x) = 6x + 2$$", "$$f'(x) = 3x + 2$$", "$$f'(x) = 6x$$", "$$f'(x) = 3x$$"],
-                    correct: 0,
-                    time: 35
-                }
-            ];
-
-            state.totalQuestions = demoQuestions.length;
-            state.currentQuestionIndex = 0;
-            
-            document.getElementById('totalQuestions').textContent = state.totalQuestions;
-            
-            showQuestion(demoQuestions[0]);
+            displayQuestion(data.question, data.questionNumber);
         }
 
-        function showQuestion(question) {
-            state.currentQuestion = question;
-            state.hasAnswered = false;
-            state.startTime = Date.now();
+        function showNewQuestion(data) {
+            studentState.currentQuestion = data.question;
+            studentState.hasAnswered = false;
             
-            document.getElementById('currentQuestionNum').textContent = state.currentQuestionIndex + 1;
+            displayQuestion(data.question, data.questionNumber);
+            enableAnswerButtons();
+            hideAnswerFeedback();
+        }
+
+        function displayQuestion(question, questionNumber) {
+            document.getElementById('currentQuestionNum').textContent = questionNumber;
             document.getElementById('questionText').innerHTML = question.question;
             
             // Afficher les options
             question.options.forEach((option, index) => {
                 const btn = document.getElementById(`answer${index}`);
-                btn.innerHTML = option;
-                btn.disabled = false;
-                btn.className = btn.className.replace(/answer-(correct|incorrect)/g, '');
+                btn.innerHTML = `${String.fromCharCode(65 + index)}. ${option}`;
+                btn.className = btn.className.replace(/answer-(correct|incorrect|selected)/g, '');
             });
             
-            // Cacher le feedback
-            document.getElementById('answerFeedback').classList.add('hidden');
-            
             // Démarrer le timer
-            startQuestionTimer(question.time);
+            startQuestionTimer(question.time || 30);
+            studentState.questionStartTime = Date.now();
             
             // Rendre les formules mathématiques
             setTimeout(renderMath, 100);
@@ -775,117 +924,122 @@
             let timeLeft = timeLimit;
             const timerEl = document.getElementById('questionTimer');
             
-            if (state.timer) {
-                clearInterval(state.timer);
+            if (studentState.timer) {
+                clearInterval(studentState.timer);
             }
             
-            state.timer = setInterval(() => {
+            // Mettre à jour immédiatement
+            updateTimerDisplay(timeLeft, timerEl);
+            
+            studentState.timer = setInterval(() => {
                 timeLeft--;
-                timerEl.textContent = `⏰ ${timeLeft}s`;
-                
-                // Changer la couleur selon le temps restant
-                if (timeLeft <= 5) {
-                    timerEl.style.color = '#ef4444';
-                    timerEl.style.animation = 'pulse 1s infinite';
-                } else if (timeLeft <= 10) {
-                    timerEl.style.color = '#f59e0b';
-                } else {
-                    timerEl.style.color = '#6b7280';
-                    timerEl.style.animation = 'none';
-                }
+                updateTimerDisplay(timeLeft, timerEl);
                 
                 if (timeLeft <= 0) {
-                    clearInterval(state.timer);
-                    if (!state.hasAnswered) {
+                    clearInterval(studentState.timer);
+                    if (!studentState.hasAnswered) {
                         // Temps écoulé
                         disableAnswerButtons();
                         showTimeoutMessage();
-                        setTimeout(nextQuestionOrEnd, 2000);
                     }
                 }
             }, 1000);
         }
 
-        async function submitAnswer(answerIndex) {
-            if (state.hasAnswered) return;
+        function updateTimerDisplay(timeLeft, timerEl) {
+            timerEl.textContent = `⏰ ${timeLeft}s`;
             
-            state.hasAnswered = true;
-            const timeSpent = Math.round((Date.now() - state.startTime) / 1000);
-            const isCorrect = answerIndex === state.currentQuestion.correct;
-            
-            // Calculer les points
-            const basePoints = 1000;
-            const timeBonus = Math.max(0, 500 - (timeSpent * 10));
-            const points = isCorrect ? Math.round(basePoints + timeBonus) : 0;
-            
-            // Mettre à jour les statistiques locales
-            state.questionsAnswered++;
-            if (isCorrect) {
-                state.correctAnswers++;
+            // Changer la couleur et l'animation selon le temps restant
+            timerEl.className = 'timer';
+            if (timeLeft <= 3) {
+                timerEl.classList.add('critical');
+            } else if (timeLeft <= 10) {
+                timerEl.classList.add('warning');
             }
-            state.score += points;
-            
-            // Feedback visuel
-            showAnswerFeedback(answerIndex, isCorrect, points);
-            
-            // En production, vous soumettriez la réponse au serveur ici
-            try {
-                await fetch(`${SUPABASE_URL}/functions/v1/quiz-sessions/submit-answer`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        participantId: state.participant?.id,
-                        questionId: 'demo-question-' + state.currentQuestionIndex,
-                        answerIndex: answerIndex,
-                        timeSpent: timeSpent,
-                        isCorrect: isCorrect
-                    })
-                });
-            } catch (error) {
-                console.error('Error submitting answer:', error);
-            }
-            
-            // Arrêter le timer
-            if (state.timer) {
-                clearInterval(state.timer);
-            }
-            
-            // Passer à la question suivante après 3 secondes
-            setTimeout(nextQuestionOrEnd, 3000);
         }
 
-        function showAnswerFeedback(selectedIndex, isCorrect, points) {
+        async function submitAnswer(answerIndex) {
+            if (studentState.hasAnswered) return;
+            
+            studentState.hasAnswered = true;
+            
+            // Calculer le temps de réponse
+            const timeSpent = Math.round((Date.now() - studentState.questionStartTime) / 1000);
+            
+            // Feedback visuel immédiat
+            const clickedBtn = document.getElementById(`answer${answerIndex}`);
+            clickedBtn.classList.add('answer-selected');
+            
+            try {
+                // Envoyer la réponse via WebSocket
+                studentState.ws.send({
+                    type: 'student_answer',
+                    answerIndex: answerIndex,
+                    timeSpent: timeSpent
+                });
+                
+                // Calculer et afficher les points (simulation côté client)
+                const isCorrect = answerIndex === studentState.currentQuestion.correct;
+                const points = isCorrect ? window.Utils.calculateScore(timeSpent, studentState.currentQuestion.time || 30) : 0;
+                
+                // Simuler la confirmation
+                setTimeout(() => {
+                    showAnswerFeedback({
+                        correct: isCorrect,
+                        points: points
+                    });
+                }, 500);
+                
+                console.log('📝 Réponse envoyée:', { answerIndex, timeSpent, isCorrect, points });
+                
+            } catch (error) {
+                console.error('❌ Erreur envoi réponse:', error);
+                // En cas d'erreur, simuler une confirmation
+                setTimeout(() => {
+                    const isCorrect = answerIndex === studentState.currentQuestion.correct;
+                    showAnswerFeedback({
+                        correct: isCorrect,
+                        points: isCorrect ? 800 : 0
+                    });
+                }, 500);
+            }
+            
+            disableAnswerButtons();
+        }
+
+        function showAnswerFeedback(data) {
             // Mettre en évidence la bonne/mauvaise réponse
             const answerButtons = document.querySelectorAll('.answer-btn');
             answerButtons.forEach((btn, index) => {
-                btn.disabled = true;
-                if (index === state.currentQuestion.correct) {
+                if (index === studentState.currentQuestion.correct) {
                     btn.classList.add('answer-correct');
-                } else if (index === selectedIndex && !isCorrect) {
+                } else {
                     btn.classList.add('answer-incorrect');
-                } else if (index !== state.currentQuestion.correct) {
-                    btn.style.opacity = '0.5';
                 }
             });
             
+            // Mettre à jour le score
+            if (data.correct) {
+                studentState.score += data.points;
+                studentState.correctAnswers++;
+            }
+            studentState.questionsAnswered++;
+            
             // Afficher les points gagnés
-            document.getElementById('lastPoints').textContent = isCorrect ? `+${points}` : '0';
+            document.getElementById('lastPoints').textContent = data.correct ? `+${data.points}` : '0';
             document.getElementById('answerFeedback').classList.remove('hidden');
             
             // Animation
-            if (isCorrect) {
+            if (data.correct) {
                 document.getElementById('answerFeedback').classList.add('bounce');
-                // Vibration si supportée
-                if ('vibrate' in navigator) {
-                    navigator.vibrate([100, 50, 100]);
-                }
+                vibrate([100, 50, 100]);
             } else {
-                if ('vibrate' in navigator) {
-                    navigator.vibrate([300]);
-                }
+                vibrate([200]);
+            }
+            
+            // Arrêter le timer
+            if (studentState.timer) {
+                clearInterval(studentState.timer);
             }
         }
 
@@ -896,11 +1050,26 @@
             // Marquer toutes les réponses comme incorrectes sauf la bonne
             const answerButtons = document.querySelectorAll('.answer-btn');
             answerButtons.forEach((btn, index) => {
-                if (index === state.currentQuestion.correct) {
+                if (index === studentState.currentQuestion.correct) {
                     btn.classList.add('answer-correct');
                 } else {
-                    btn.style.opacity = '0.5';
+                    btn.classList.add('answer-incorrect');
                 }
+            });
+            
+            vibrate([200, 100, 200]);
+        }
+
+        function hideAnswerFeedback() {
+            document.getElementById('answerFeedback').classList.add('hidden');
+            document.getElementById('answerFeedback').classList.remove('bounce');
+        }
+
+        function enableAnswerButtons() {
+            const answerButtons = document.querySelectorAll('.answer-btn');
+            answerButtons.forEach(btn => {
+                btn.disabled = false;
+                btn.className = btn.className.replace(/answer-(correct|incorrect|selected)/g, '');
             });
         }
 
@@ -911,54 +1080,26 @@
             });
         }
 
-        function nextQuestionOrEnd() {
-            state.currentQuestionIndex++;
-            
-            if (state.currentQuestionIndex < state.totalQuestions) {
-                // Question suivante (en production, vous recevriez cela du serveur)
-                const demoQuestions = [
-                    {
-                        question: "Résoudre : $$x^2 - 5x + 6 = 0$$",
-                        options: ["$$x = 2$$ et $$x = 3$$", "$$x = 1$$ et $$x = 6$$", "$$x = -2$$ et $$x = -3$$", "$$x = 0$$ et $$x = 5$$"],
-                        correct: 0,
-                        time: 30
-                    },
-                    {
-                        question: "Calculer : $$\\sqrt{16} + 3^2$$",
-                        options: ["$$13$$", "$$12$$", "$$25$$", "$$7$$"],
-                        correct: 0,
-                        time: 25
-                    },
-                    {
-                        question: "Quelle est la dérivée de $$f(x) = 3x^2 + 2x$$?",
-                        options: ["$$f'(x) = 6x + 2$$", "$$f'(x) = 3x + 2$$", "$$f'(x) = 6x$$", "$$f'(x) = 3x$$"],
-                        correct: 0,
-                        time: 35
-                    }
-                ];
-                
-                showQuestion(demoQuestions[state.currentQuestionIndex]);
-            } else {
-                // Quiz terminé
-                showFinalResults();
-            }
-        }
-
-        function showFinalResults() {
+        // **RÉSULTATS FINAUX**
+        function showFinalResults(data) {
             showScreen('resultsScreen');
             
-            const accuracy = state.questionsAnswered > 0 ? 
-                Math.round((state.correctAnswers / state.questionsAnswered) * 100) : 0;
+            // Calculer le rang et la précision
+            const accuracy = studentState.questionsAnswered > 0 ? 
+                Math.round((studentState.correctAnswers / studentState.questionsAnswered) * 100) : 0;
             
-            // Simuler un classement
-            const totalParticipants = Math.floor(Math.random() * 20) + 5;
-            const rank = Math.min(Math.floor(Math.random() * 5) + 1, totalParticipants);
+            // Supposer un rang basé sur le score (simulation)
+            const simulatedRank = Math.floor(Math.random() * 5) + 1;
+            const totalParticipants = data.finalResults?.length || Math.floor(Math.random() * 20) + 5;
             
-            document.getElementById('finalScore').textContent = state.score;
-            document.getElementById('finalRank').textContent = getRankDisplay(rank);
+            document.getElementById('finalScore').textContent = studentState.score;
+            document.getElementById('finalRank').textContent = getRankDisplay(simulatedRank);
             document.getElementById('totalParticipants').textContent = totalParticipants;
-            document.getElementById('correctAnswers').textContent = state.correctAnswers;
+            document.getElementById('correctAnswers').textContent = studentState.correctAnswers;
             document.getElementById('accuracy').textContent = accuracy + '%';
+            
+            // Vibration de fin
+            vibrate([100, 50, 100, 50, 200]);
         }
 
         function getRankDisplay(rank) {
@@ -968,42 +1109,19 @@
             return rank + 'ème';
         }
 
-        function leaveSession() {
-            if (confirm('Êtes-vous sûr de vouloir quitter la salle ?')) {
-                location.reload();
+        // **UTILITAIRES**
+        function renderMath() {
+            if (window.MathJax && MathJax.typesetPromise) {
+                MathJax.typesetPromise().catch(err => console.error('Erreur MathJax:', err));
             }
         }
 
-        // Initialisation
-        document.addEventListener('DOMContentLoaded', function() {
-            // Auto-remplir le code de salle depuis l'URL si présent
-            const urlParams = new URLSearchParams(window.location.search);
-            const roomFromUrl = urlParams.get('room');
-            if (roomFromUrl) {
-                document.getElementById('roomCode').value = roomFromUrl.toUpperCase();
+        // Vibration feedback (si supporté)
+        function vibrate(pattern = [100]) {
+            if ('vibrate' in navigator) {
+                navigator.vibrate(pattern);
             }
-
-            // Auto-uppercase pour le code de salle
-            document.getElementById('roomCode').addEventListener('input', function(e) {
-                e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-            });
-
-            // Auto-capitalize pour le prénom
-            document.getElementById('studentName').addEventListener('input', function(e) {
-                const value = e.target.value;
-                e.target.value = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
-            });
-
-            // Gérer l'entrée avec Enter
-            document.getElementById('studentName').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    joinSession();
-                }
-            });
-
-            // Rendu initial MathJax
-            setTimeout(renderMath, 500);
-        });
+        }
 
         // Empêcher le zoom sur double-tap (iOS)
         let lastTouchEnd = 0;
@@ -1014,6 +1132,24 @@
             }
             lastTouchEnd = now;
         }, false);
+
+        // Wake lock pour éviter la mise en veille pendant le quiz
+        let wakeLock = null;
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('🔒 Wake lock activé');
+                }
+            } catch (err) {
+                console.log('❌ Wake lock non supporté:', err);
+            }
+        }
+
+        // Demander wake lock au début du quiz
+        window.addEventListener('focus', requestWakeLock);
+
+        console.log('🎯 Interface élève MathQuiz Live prête !');
     </script>
 </body>
 </html>
