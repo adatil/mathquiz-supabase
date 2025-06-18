@@ -1006,6 +1006,20 @@
             
             disableAnswerButtons();
         }
+            // Après le calcul des points côté client, envoyer à l'API
+try {
+    await window.SessionAPI.submitAnswer(
+        studentState.studentId, 
+        studentState.questionsAnswered, 
+        answerIndex, 
+        timeSpent,
+        isCorrect,  // 👈 AJOUTER
+        studentState.currentQuestion.time || 30  // 👈 AJOUTER
+    );
+} catch (error) {
+    console.error('❌ Erreur sauvegarde réponse:', error);
+}
+        
 
         function showAnswerFeedback(data) {
             // Mettre en évidence la bonne/mauvaise réponse
