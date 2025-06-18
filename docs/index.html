@@ -763,7 +763,13 @@
                 // Traiter la réponse de l'élève
                 updateParticipants();
             });
+            window.wsManager.on('participant_updated', (participantData) => {
+                console.log('🔄 Participant mis à jour:', participantData);
+                updateParticipants();
+            });
 
+
+            
             appState.ws = window.wsManager;
         }
 
