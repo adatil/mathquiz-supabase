@@ -73,6 +73,58 @@
             margin-bottom: 2rem;
         }
 
+        /* LTI Context Display */
+        .lti-context {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .lti-context h2 {
+            color: #1f2937;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .lti-badge {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .lti-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .lti-info-item {
+            background: #f9fafb;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border-left: 4px solid #10b981;
+        }
+
+        .lti-info-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+        }
+
+        .lti-info-value {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -353,6 +405,7 @@
             .room-code { font-size: 2rem; }
             .answers-preview { grid-template-columns: 1fr; }
             .grid { grid-template-columns: 1fr; }
+            .lti-info { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -366,44 +419,90 @@
                     <p class="subtitle">Quiz interactifs en temps réel pour vos cours de mathématiques</p>
                 </div>
 
+                <!-- Affichage du contexte LTI -->
+                <div id="ltiContext" class="lti-context hidden">
+                    <h2>
+                        📚 Contexte Elea
+                        <span class="lti-badge">LTI</span>
+                    </h2>
+                    <div class="lti-info">
+                        <div class="lti-info-item">
+                            <div class="lti-info-label">Cours</div>
+                            <div class="lti-info-value" id="ltiContextTitle">-</div>
+                        </div>
+                        <div class="lti-info-item">
+                            <div class="lti-info-label">Utilisateur</div>
+                            <div class="lti-info-value" id="ltiUserName">-</div>
+                        </div>
+                        <div class="lti-info-item">
+                            <div class="lti-info-label">Rôle</div>
+                            <div class="lti-info-value" id="ltiUserRole">-</div>
+                        </div>
+                        <div class="lti-info-item">
+                            <div class="lti-info-label">Resource</div>
+                            <div class="lti-info-value" id="ltiResourceId">-</div>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="connectionStatus" class="status-message status-info hidden">
                     <span id="connectionText">🔗 Connexion à Supabase...</span>
                 </div>
 
-                <div class="grid">
-                    <button class="btn btn-green" onclick="showCreateView()">
-                        <div style="font-size: 3rem; margin-bottom: 1rem;">➕</div>
-                        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Créer un Quiz</h3>
-                        <p style="opacity: 0.8;">Nouvelles questions</p>
-                    </button>
-                    
-                    <button class="btn btn-yellow" onclick="document.getElementById('fileInput').click()">
-                        <div style="font-size: 3rem; margin-bottom: 1rem;">📁</div>
-                        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Charger XML</h3>
-                        <p style="opacity: 0.8;">Importer questions</p>
-                    </button>
-                    <input type="file" id="fileInput" accept=".xml" style="display: none;" onchange="loadQuestionsFromFile(event)">
-                    
-                    <button class="btn btn-purple" onclick="downloadExampleXML()">
-                        <div style="font-size: 3rem; margin-bottom: 1rem;">📄</div>
-                        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Exemple XML</h3>
-                        <p style="opacity: 0.8;">Télécharger modèle</p>
-                    </button>
-                    
-                    <button class="btn btn-blue" onclick="showStudentAccess()">
-                        <div style="font-size: 3rem; margin-bottom: 1rem;">📱</div>
-                        <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Accès Élèves</h3>
-                        <p style="opacity: 0.8;">URL & QR Code</p>
-                    </button>
+                <!-- Interface Standalone -->
+                <div id="standaloneInterface">
+                    <div class="grid" id="standaloneGrid">
+                        <button class="btn btn-green" onclick="showCreateView()">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">➕</div>
+                            <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Créer un Quiz</h3>
+                            <p style="opacity: 0.8;">Nouvelles questions</p>
+                        </button>
+                        
+                        <button class="btn btn-yellow" onclick="document.getElementById('fileInput').click()">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">📁</div>
+                            <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Charger XML</h3>
+                            <p style="opacity: 0.8;">Importer questions</p>
+                        </button>
+                        <input type="file" id="fileInput" accept=".xml" style="display: none;" onchange="loadQuestionsFromFile(event)">
+                        
+                        <button class="btn btn-purple" onclick="downloadExampleXML()">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">📄</div>
+                            <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Exemple XML</h3>
+                            <p style="opacity: 0.8;">Télécharger modèle</p>
+                        </button>
+                        
+                        <button class="btn btn-blue" id="studentAccessBtn" onclick="showStudentAccess()">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">📱</div>
+                            <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Accès Élèves</h3>
+                            <p style="opacity: 0.8;">URL & QR Code</p>
+                        </button>
+                    </div>
+
+                    <div class="card" id="quizManagementCard">
+                        <h2 style="font-size: 1.5rem; font-weight: bold; color: #1f2937; margin-bottom: 1.5rem;">
+                            🏆 Mes Quiz
+                        </h2>
+                        
+                        <div id="quizList" class="quiz-grid">
+                            <!-- Quiz seront ajoutés ici -->
+                        </div>
+                    </div>
                 </div>
 
-                <div class="card">
-                    <h2 style="font-size: 1.5rem; font-weight: bold; color: #1f2937; margin-bottom: 1.5rem;">
-                        🏆 Mes Quiz
-                    </h2>
-                    
-                    <div id="quizList" class="quiz-grid">
-                        <!-- Quiz seront ajoutés ici -->
+                <!-- Interface LTI -->
+                <div id="ltiInterface" class="hidden">
+                    <div class="grid">
+                        <button class="btn btn-green" onclick="startLTISession()">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">🚀</div>
+                            <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Démarrer Session</h3>
+                            <p style="opacity: 0.8;">Quiz de ce cours</p>
+                        </button>
+                        
+                        <button class="btn btn-blue" onclick="showLTIGrades()">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+                            <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Voir les Notes</h3>
+                            <p style="opacity: 0.8;">Résultats élèves</p>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -422,7 +521,7 @@
                     <div class="room-code-display">
                         <h2 style="font-size: 1.2rem; margin-bottom: 0.5rem; opacity: 0.9;">Code de salle</h2>
                         <div class="room-code" id="roomCodeDisplay">ABC123</div>
-                        <p style="opacity: 0.8;">Les élèves peuvent rejoindre sur : <strong id="studentUrlDisplay"></strong></p>
+                        <p id="sessionUrlInfo" style="opacity: 0.8;">Les élèves peuvent rejoindre sur : <strong id="studentUrlDisplay"></strong></p>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
@@ -566,7 +665,9 @@
             currentQuestionIndex: 0,
             sessionStatus: 'idle', // idle, waiting, active, paused, finished
             ws: null,
-            teacherId: 'teacher_' + Date.now()
+            teacherId: 'teacher_' + Date.now(),
+            appMode: 'STANDALONE_MODE', // Will be set by initialization
+            ltiData: null
         };
 
         // Initialisation de l'application
@@ -582,13 +683,24 @@
                     window.initializeSupabase();
                 }
 
-                // Charger les quiz existants
-                await loadQuizzes();
+                // Initialiser le mode de l'application
+                const appConfig = window.initializeAppMode ? window.initializeAppMode() : { mode: 'STANDALONE_MODE' };
+                appState.appMode = appConfig.mode;
+                appState.ltiData = appConfig.context;
+
+                // Adapter l'interface selon le mode
+                adaptInterface(appConfig);
+
+                // Charger les quiz existants (seulement en mode Standalone)
+                if (appConfig.mode === 'STANDALONE_MODE') {
+                    await loadQuizzes();
+                }
                 
                 // Afficher le status de connexion
                 showConnectionStatus('✅ Connecté à Supabase', 'success');
                 
-                console.log('✅ Application initialisée');
+                console.log('✅ Application initialisée en mode:', appConfig.mode);
+                
             } catch (error) {
                 console.error('❌ Erreur d\'initialisation:', error);
                 showConnectionStatus('❌ Erreur de connexion', 'error');
@@ -606,6 +718,129 @@
                 };
                 checkConfig();
             });
+        }
+
+        /**
+         * Adapte l'interface selon le mode LTI ou Standalone
+         */
+        function adaptInterface(appConfig) {
+            const ltiContext = document.getElementById('ltiContext');
+            const standaloneInterface = document.getElementById('standaloneInterface');
+            const ltiInterface = document.getElementById('ltiInterface');
+
+            if (appConfig.mode === 'LTI_MODE') {
+                console.log('🎯 Adaptation interface LTI');
+                
+                // Afficher le contexte LTI
+                ltiContext.classList.remove('hidden');
+                populateLTIContext(appConfig.context);
+                
+                // Masquer interface standalone, afficher interface LTI
+                standaloneInterface.classList.add('hidden');
+                ltiInterface.classList.remove('hidden');
+                
+                // Adapter le titre
+                document.querySelector('.subtitle').textContent = 'Quiz interactifs dans votre cours Elea';
+                
+            } else {
+                console.log('🎯 Mode Standalone - Interface normale');
+                
+                // Masquer contexte LTI et interface LTI
+                ltiContext.classList.add('hidden');
+                ltiInterface.classList.add('hidden');
+                
+                // Afficher interface standalone
+                standaloneInterface.classList.remove('hidden');
+            }
+        }
+
+        /**
+         * Remplit l'affichage du contexte LTI
+         */
+        function populateLTIContext(ltiData) {
+            if (!ltiData) return;
+
+            document.getElementById('ltiContextTitle').textContent = ltiData.context_title || 'Cours Elea';
+            document.getElementById('ltiResourceId').textContent = ltiData.resource_link_id || 'N/A';
+            
+            const userName = [ltiData.lis_person_name_given, ltiData.lis_person_name_family]
+                .filter(Boolean).join(' ') || 'Utilisateur';
+            document.getElementById('ltiUserName').textContent = userName;
+            
+            const role = ltiData.roles?.includes('Instructor') ? 'Enseignant' : 'Utilisateur';
+            document.getElementById('ltiUserRole').textContent = role;
+        }
+
+        /**
+         * Démarre une session LTI
+         */
+        async function startLTISession() {
+            try {
+                showConnectionStatus('🔄 Création de la session LTI...', 'info');
+
+                if (!appState.ltiData) {
+                    throw new Error('Données LTI manquantes');
+                }
+
+                // Créer une session LTI via l'API
+                const sessionData = await window.LTIAPI.createLTISession(
+                    appState.ltiData.context_id,
+                    appState.ltiData.resource_link_id,
+                    appState.teacherId
+                );
+
+                appState.currentSession = sessionData.session;
+                appState.currentQuiz = sessionData.quiz; // Quiz du cours Elea
+                appState.sessionStatus = 'waiting';
+                appState.currentQuestionIndex = 0;
+                appState.participants = [];
+
+                // Connecter WebSocket
+                connectWebSocket();
+
+                // Adapter l'affichage pour le mode LTI
+                adaptLiveSessionForLTI();
+
+                // Afficher l'interface de session
+                showView('liveSession');
+                updateSessionDisplay();
+
+                showConnectionStatus('✅ Session LTI créée !', 'success');
+
+            } catch (error) {
+                console.error('Erreur création session LTI:', error);
+                showConnectionStatus('❌ Erreur: ' + error.message, 'error');
+            }
+        }
+
+        /**
+         * Adapte l'affichage de la session live pour le mode LTI
+         */
+        function adaptLiveSessionForLTI() {
+            if (appState.appMode === 'LTI_MODE') {
+                // Masquer l'URL élèves (géré par Elea)
+                const sessionUrlInfo = document.getElementById('sessionUrlInfo');
+                if (sessionUrlInfo) {
+                    sessionUrlInfo.style.display = 'none';
+                }
+
+                // Adapter le message d'attente
+                const participantsList = document.getElementById('participantsList');
+                if (participantsList && appState.participants.length === 0) {
+                    participantsList.innerHTML = `
+                        <div style="text-align: center; color: #6b7280; padding: 2rem;">
+                            Les élèves rejoignent depuis Elea...
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        /**
+         * Affiche les notes LTI
+         */
+        function showLTIGrades() {
+            alert('Fonctionnalité "Voir les Notes" en cours de développement.\nLes notes seront automatiquement transmises à Elea.');
         }
 
         function showConnectionStatus(message, type) {
@@ -641,12 +876,18 @@
         }
 
         function showCreateView() {
-            showView('create');
+            // Seulement en mode Standalone
+            if (appState.appMode === 'STANDALONE_MODE') {
+                showView('create');
+            }
         }
 
         function showStudentAccess() {
-            showView('studentAccess');
-            document.getElementById('studentUrlDisplay').textContent = window.CONFIG?.STUDENT_URL || 'URL non disponible';
+            // Seulement en mode Standalone
+            if (appState.appMode === 'STANDALONE_MODE') {
+                showView('studentAccess');
+                document.getElementById('studentUrlDisplay').textContent = window.CONFIG?.STUDENT_URL || 'URL non disponible';
+            }
         }
 
         // Gestion des quiz
@@ -762,38 +1003,33 @@
                 console.log('📝 Réponse reçue:', data);
                 // Traiter la réponse de l'élève
                 updateParticipants();
+                
+                // En mode LTI, envoyer la note automatiquement
+                if (appState.appMode === 'LTI_MODE' && data.isCorrect !== undefined) {
+                    sendGradeToLTI(data.participantId, data.score, data.maxScore);
+                }
             });
-                // AJOUTER ce code dans la fonction connectWebSocket() de index.html
-// Juste après le listener 'student_answer'
-
-        window.wsManager.on('participant_updated', (participantData) => {
-    console.log('🔄 Participant mis à jour:', participantData);
-    updateParticipants(); // Rafraîchir la liste des participants
-});
-
-// Optionnel : listener pour tous les changements de participants
-window.wsManager.on('user_joined', (data) => {
-    if (data.userType === 'student') {
-        console.log('👨‍🎓 Nouvel élève connecté:', data.studentName);
-        updateParticipants();
-    }
-});
-
-window.wsManager.on('user_left', (data) => {
-    if (data.userType === 'student') {
-        console.log('👋 Élève déconnecté:', data.userId);
-        updateParticipants();
-    }
-});
             
             window.wsManager.on('participant_updated', (participantData) => {
                 console.log('🔄 Participant mis à jour:', participantData);
                 updateParticipants();
             });
 
-
-            
             appState.ws = window.wsManager;
+        }
+
+        /**
+         * Envoie une note au LMS via LTI
+         */
+        async function sendGradeToLTI(participantId, score, maxScore) {
+            if (appState.appMode !== 'LTI_MODE') return;
+
+            try {
+                await window.LTIAPI.sendGrade(participantId, score, maxScore);
+                console.log('📊 Note envoyée au LMS:', score, '/', maxScore);
+            } catch (error) {
+                console.error('❌ Erreur envoi note LTI:', error);
+            }
         }
 
         function updateSessionDisplay() {
@@ -801,7 +1037,11 @@ window.wsManager.on('user_left', (data) => {
 
             // Code de salle
             document.getElementById('roomCodeDisplay').textContent = appState.currentSession.room_code;
-            document.getElementById('studentUrlDisplay').textContent = window.CONFIG?.STUDENT_URL || 'URL non disponible';
+            
+            // URL élèves (seulement en mode Standalone)
+            if (appState.appMode === 'STANDALONE_MODE') {
+                document.getElementById('studentUrlDisplay').textContent = window.CONFIG?.STUDENT_URL || 'URL non disponible';
+            }
             
             // Stats
             document.getElementById('totalQuestions').textContent = appState.currentQuiz.totalQuestions;
@@ -857,9 +1097,13 @@ window.wsManager.on('user_left', (data) => {
             countEl.textContent = appState.participants.length;
 
             if (appState.participants.length === 0) {
+                const waitingMessage = appState.appMode === 'LTI_MODE' 
+                    ? 'Les élèves rejoignent depuis Elea...'
+                    : 'En attente des élèves...';
+                    
                 container.innerHTML = `
                     <div style="text-align: center; color: #6b7280; padding: 2rem;">
-                        En attente des élèves...
+                        ${waitingMessage}
                     </div>
                 `;
                 return;
@@ -971,6 +1215,13 @@ window.wsManager.on('user_left', (data) => {
                 finalResults: appState.participants
             });
 
+            // En mode LTI, envoyer toutes les notes finales
+            if (appState.appMode === 'LTI_MODE') {
+                appState.participants.forEach(participant => {
+                    sendGradeToLTI(participant.id, participant.score, 1000); // Score max estimé
+                });
+            }
+
             alert('Quiz terminé ! 🎉');
             updateSessionDisplay();
         }
@@ -989,8 +1240,10 @@ window.wsManager.on('user_left', (data) => {
             }
         }
 
-        // Création de quiz rapide
+        // Création de quiz rapide (Standalone uniquement)
         function createQuickQuiz(subject) {
+            if (appState.appMode !== 'STANDALONE_MODE') return;
+            
             const title = document.getElementById('quickQuizTitle').value || 'Quiz Express';
             
             let questions = [];
