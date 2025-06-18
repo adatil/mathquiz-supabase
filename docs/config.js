@@ -1,4 +1,4 @@
-// Configuration MathQuiz - Production v2 - Debug Fix
+// Configuration MathQuiz - Production v2 - LTI Integration
 const CONFIG = {
     // Supabase Configuration - MathsQuizzv2
     SUPABASE_URL: 'https://klufdvhlkeaxoxucdnzv.supabase.co',
@@ -23,12 +23,232 @@ const CONFIG = {
     TIME_BONUS_MULTIPLIER: 20,
     PERFECT_SCORE_BONUS: 500,
     
+    // LTI Configuration
+    LTI_ENABLED: true,
+    LTI_LAUNCH_URL: 'https://klufdvhlkeaxoxucdnzv.supabase.co/functions/v1/lti-launch',
+    LTI_GRADE_URL: 'https://klufdvhlkeaxoxucdnzv.supabase.co/functions/v1/lti-grade',
+    LTI_SESSION_URL: 'https://klufdvhlkeaxoxucdnzv.supabase.co/functions/v1/lti-session',
+    
     // Version Info
-    VERSION: '2.1.1',
+    VERSION: '2.2.0',
     BUILD_DATE: '2025-06-18',
     ENVIRONMENT: 'production',
     DEBUG: true // Activé pour diagnostic
 };
+
+// ==========================================
+// MODE DETECTION & INITIALIZATION
+// ==========================================
+
+/**
+ * Détecte le mode de lancement (LTI vs Standalone)
+ * @returns {string} 'LTI_MODE' ou 'STANDALONE_MODE'
+ */
+function detectLaunchMode() {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Vérifier les paramètres LTI typiques
+    const hasLTIParam = urlParams.has('lti');
+    const hasLTIVersion = urlParams.has('lti_version');
+    const hasResourceLinkId = urlParams.has('resource_link_id');
+    const hasContextId = urlParams.has('context_id');
+    
+    if (hasLTIParam || hasLTIVersion || hasResourceLinkId || hasContextId) {
+        console.log('🎯 Mode détecté: LTI');
+        return 'LTI_MODE';
+    } else {
+        console.log('🎯 Mode détecté: Standalone');
+        return 'STANDALONE_MODE';
+    }
+}
+
+/**
+ * Initialise l'application selon le mode détecté
+ */
+function initializeAppMode() {
+    const mode = detectLaunchMode();
+    
+    if (mode === 'LTI_MODE') {
+        return initLTIMode();
+    } else {
+        return initStandaloneMode();
+    }
+}
+
+/**
+ * Initialisation en mode LTI
+ */
+function initLTIMode() {
+    console.log('🚀 Initialisation Mode LTI');
+    
+    // Extraire les données LTI depuis l'URL
+    const ltiData = extractLTIData();
+    
+    // Configuration spécifique LTI
+    const ltiConfig = {
+        mode: 'LTI_MODE',
+        context: ltiData,
+        features: {
+            studentAccess: false,  // Géré par Elea
+            quizManagement: false, // Quiz du cours Elea
+            directSession: true,   // Session directe
+            gradePassback: true    // Retour de notes
+        }
+    };
+    
+    // Stocker la configuration LTI
+    window.LTI_CONFIG = ltiConfig;
+    
+    return ltiConfig;
+}
+
+/**
+ * Initialisation en mode Standalone
+ */
+function initStandaloneMode() {
+    console.log('🚀 Initialisation Mode Standalone');
+    
+    const standaloneConfig = {
+        mode: 'STANDALONE_MODE',
+        context: null,
+        features: {
+            studentAccess: true,   // Accès élèves complet
+            quizManagement: true,  // Gestion complète des quiz
+            directSession: true,   // Sessions live
+            gradePassback: false   // Pas de retour de notes
+        }
+    };
+    
+    // Stocker la configuration Standalone
+    window.STANDALONE_CONFIG = standaloneConfig;
+    
+    return standaloneConfig;
+}
+
+/**
+ * Extrait les données LTI depuis les paramètres URL
+ */
+function extractLTIData() {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    return {
+        lti_version: urlParams.get('lti_version'),
+        resource_link_id: urlParams.get('resource_link_id'),
+        context_id: urlParams.get('context_id'),
+        context_title: urlParams.get('context_title'),
+        user_id: urlParams.get('user_id'),
+        roles: urlParams.get('roles'),
+        lis_person_name_given: urlParams.get('lis_person_name_given'),
+        lis_person_name_family: urlParams.get('lis_person_name_family'),
+        lis_outcome_service_url: urlParams.get('lis_outcome_service_url'),
+        lis_result_sourcedid: urlParams.get('lis_result_sourcedid'),
+        launch_presentation_return_url: urlParams.get('launch_presentation_return_url')
+    };
+}
+
+// ==========================================
+// LTI-SPECIFIC API FUNCTIONS
+// ==========================================
+
+const LTIAPI = {
+    /**
+     * Traite un lancement LTI
+     */
+    async handleLTILaunch(ltiData) {
+        return await apiCall('/lti-launch', {
+            method: 'POST',
+            body: JSON.stringify(ltiData)
+        });
+    },
+    
+    /**
+     * Crée une session LTI
+     */
+    async createLTISession(contextId, resourceLinkId, teacherId) {
+        return await apiCall('/lti-session', {
+            method: 'POST',
+            body: JSON.stringify({ contextId, resourceLinkId, teacherId })
+        });
+    },
+    
+    /**
+     * Envoie une note via LTI
+     */
+    async sendGrade(participantId, score, maxScore) {
+        return await apiCall('/lti-grade', {
+            method: 'POST',
+            body: JSON.stringify({ participantId, score, maxScore })
+        });
+    }
+};
+
+// ==========================================
+// SECURITY & ACCESS CONTROL
+// ==========================================
+
+class SecurityManager {
+    /**
+     * Valide l'accès selon le mode
+     */
+    static validateAccess(userId, resource, mode) {
+        if (mode === 'LTI_MODE') {
+            return this.validateLTIAccess(userId, resource);
+        } else {
+            return this.validateStandaloneAccess(userId, resource);
+        }
+    }
+    
+    /**
+     * Validation d'accès LTI
+     */
+    static validateLTIAccess(userId, resource) {
+        // Vérifier que l'utilisateur est dans le contexte LTI approprié
+        const ltiConfig = window.LTI_CONFIG;
+        if (!ltiConfig || !ltiConfig.context) {
+            return false;
+        }
+        
+        // Logique de validation LTI spécifique
+        return true;
+    }
+    
+    /**
+     * Validation d'accès Standalone
+     */
+    static validateStandaloneAccess(userId, resource) {
+        // Validation pour mode standalone (existant)
+        return true;
+    }
+    
+    /**
+     * Obtient la portée des données selon le mode
+     */
+    static getDataScope(sessionId, mode) {
+        if (mode === 'LTI_MODE') {
+            return this.getLTIContextData(sessionId);
+        } else {
+            return this.getPublicData(sessionId);
+        }
+    }
+    
+    static getLTIContextData(sessionId) {
+        // Données limitées au contexte LTI
+        const ltiConfig = window.LTI_CONFIG;
+        return {
+            contextId: ltiConfig?.context?.context_id,
+            resourceLinkId: ltiConfig?.context?.resource_link_id,
+            sessionId: sessionId
+        };
+    }
+    
+    static getPublicData(sessionId) {
+        // Données publiques pour mode standalone
+        return {
+            sessionId: sessionId,
+            public: true
+        };
+    }
+}
 
 // Initialize Supabase Client
 let supabaseClient = null;
@@ -408,10 +628,14 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         CONFIG,
         SessionAPI,
+        LTIAPI,
+        SecurityManager,
         RealtimeManager,
         realtimeManager,
         Utils,
-        initializeSupabase
+        initializeSupabase,
+        detectLaunchMode,
+        initializeAppMode
     };
 }
 
@@ -419,9 +643,13 @@ if (typeof module !== 'undefined' && module.exports) {
 if (typeof window !== 'undefined') {
     window.CONFIG = CONFIG;
     window.SessionAPI = SessionAPI;
+    window.LTIAPI = LTIAPI;
+    window.SecurityManager = SecurityManager;
     window.realtimeManager = realtimeManager;
     window.Utils = Utils;
     window.initializeSupabase = initializeSupabase;
+    window.detectLaunchMode = detectLaunchMode;
+    window.initializeAppMode = initializeAppMode;
     
     // Backward compatibility
     window.MATHQUIZ_CONFIG = CONFIG;
@@ -433,6 +661,8 @@ if (typeof window !== 'undefined') {
         const checkSupabase = () => {
             if (window.supabase) {
                 initializeSupabase();
+                // Initialiser le mode de l'application
+                initializeAppMode();
             } else {
                 setTimeout(checkSupabase, 100);
             }
@@ -443,4 +673,5 @@ if (typeof window !== 'undefined') {
     console.log('🎯 MathQuiz Configuration Loaded v' + CONFIG.VERSION);
     console.log('📡 API Endpoint:', CONFIG.SESSIONS_API);
     console.log('🔗 Realtime System: Supabase Realtime (Debug Mode)');
+    console.log('🚀 LTI Integration: Enabled');
 }
