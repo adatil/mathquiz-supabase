@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathQuiz Live - Élève</title>
+    
+    <!-- Configuration -->
+    <script src="config.js"></script>
+    
+    <!-- MathJax -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                    console.log('✅ MathJax chargé !');
+                }
+            }
+        };
+    </script>
+    <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 1rem;
+            color: white;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        /* Mode LTI - Adaptation responsive */
+        body.lti-mode {
+            padding: 0.5rem;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .lti-mode .container {
+            max-width: 100%;
+            height: calc(100vh - 1rem);
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            flex-shrink: 0;
+        }
+
+        .lti-mode .header {
+            margin-bottom: 1rem;
+        }
+
+        .title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .lti-mode .title {
+            font-size: 2rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        /* LTI Context Info */
+        .lti-context {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            display: none;
+        }
+
+        .lti-mode .lti-context {
+            display: block;
+        }
+
+        .course-info {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .assignment-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        /* Cards */
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            color: #1f2937;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .lti-mode .card {
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-center {
+            text-align: center;
+        }
+
+        .hidden { display: none !important; }
+
+        /* Formulaires */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #374151;
+            font-size: 1.1rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 1rem;
+            border: 3px solid #e5e7eb;
+            border-radius: 0.75rem;
+            font-size: 1.2rem;
+            text-align: center;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
+            transform: scale(1.02);
+        }
+
+        .form-input.uppercase {
+            text-transform: uppercase;
+            letter-spacing: 0.2rem;
+        }
+
+        /* LTI Auto-join mode */
+        .lti-auto-join {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 1rem;
+            padding: 2rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .lti-waiting-message {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Boutons */
+        .btn {
+            width: 100%;
+            padding: 1.2rem;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: bold;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover:not(:disabled) { 
+            transform: translateY(-2px); 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled { 
+            opacity: 0.6; 
+            cursor: not-allowed; 
+            transform: none;
+        }
+
+        .btn-primary { 
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; 
+        }
+
+        .btn-success { 
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white; 
+        }
+
+        .btn-danger { 
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white; 
+        }
+
+        .btn-gray {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: white;
+        }
+
+        /* Boutons de réponse */
+        .answers-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .lti-mode .answers-grid {
+            margin: 1.5rem 0;
+            gap: 0.75rem;
+        }
+
+        .answer-btn {
+            padding: 1.5rem;
+            border: none;
+            border-radius: 1rem;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            min-height: 4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .lti-mode .answer-btn {
+            padding: 1.2rem;
+            min-height: 3.5rem;
+            font-size: 1rem;
+        }
+
+        .answer-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .answer-btn:active {
+            transform: scale(0.98);
+        }
+
+        .answer-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .answer-red { 
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border: 3px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .answer-blue { 
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: 3px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .answer-yellow { 
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            border: 3px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .answer-green { 
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: 3px solid rgba(16, 185, 129, 0.3);
+        }
+
+        /* États des réponses */
+        .answer-correct {
+            background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+            border-color: #bbf7d0 !important;
+            animation: correctPulse 0.8s ease-out;
+        }
+
+        .answer-incorrect {
+            background: linear-gradient(135deg, #64748b, #475569) !important;
+            border-color: #f1f5f9 !important;
+            animation: incorrectShake 0.6s ease-out;
+        }
+
+        .answer-selected {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+
+        /* Question display */
+        .question-card {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .question-text {
+            font-size: 1.3rem;
+            font-weight: bold;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+            text-align: center;
+            color: #1f2937;
+            min-height: 3rem;
+        }
+
+        .lti-mode .question-text {
+            font-size: 1.1rem;
+            min-height: 2.5rem;
+        }
+
+        .question-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        .timer {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ef4444;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .lti-mode .timer {
+            font-size: 1.5rem;
+        }
+
+        .timer.warning {
+            animation: timerWarning 1s infinite;
+            color: #f59e0b;
+        }
+
+        .timer.critical {
+            animation: timerCritical 0.5s infinite;
+            color: #ef4444;
+        }
+
+        /* Status messages */
+        .status {
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .status-waiting { 
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            color: white;
+        }
+
+        .status-connected { 
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .status-error { 
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .status-info {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+
+        /* Score display */
+        .score-display {
+            text-align: center;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            border-radius: 1rem;
+            margin-bottom: 1rem;
+            color: white;
+        }
+
+        .lti-mode .score-display {
+            padding: 1rem;
+        }
+
+        .score-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .lti-mode .score-number {
+            font-size: 2rem;
+        }
+
+        .score-label {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        /* Ranking */
+        .rank-display {
+            text-align: center;
+            padding: 1rem;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border-radius: 0.75rem;
+            margin-bottom: 1rem;
+            color: white;
+        }
+
+        .rank-number {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .lti-mode .rank-number {
+            font-size: 1.5rem;
+        }
+
+        /* Connection status */
+        .connection-indicator {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ef4444;
+            z-index: 1000;
+        }
+
+        .connection-indicator.connected {
+            background: #10b981;
+        }
+
+        .lti-mode .connection-indicator {
+            top: 0.5rem;
+            right: 0.5rem;
+        }
+
+        /* LTI Grade display */
+        .lti-grade-info {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            display: none;
+        }
+
+        .lti-mode .lti-grade-info {
+            display: block;
+        }
+
+        .grade-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #22c55e;
+        }
+
+        /* Animations */
+        @keyframes correctPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes incorrectShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        @keyframes slideIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(30px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        .slide-in {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        .bounce {
+            animation: bounce 1s ease-out;
+        }
+
+        @keyframes timerWarning {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        @keyframes timerCritical {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Loading spinner */
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 3px solid white;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .title { font-size: 2rem; }
+            .card { padding: 1.5rem; margin-bottom: 1rem; }
+            .question-text { font-size: 1.1rem; }
+            .answer-btn { padding: 1.2rem; font-size: 1rem; }
+            
+            .lti-mode .title { font-size: 1.5rem; }
+            .lti-mode .card { padding: 1rem; }
+            .lti-mode .question-text { font-size: 1rem; }
+        }
+
+        @media (max-height: 600px) {
+            .header { margin-bottom: 1rem; }
+            .card { padding: 1.5rem; margin-bottom: 1rem; }
+            
+            .lti-mode .header { margin-bottom: 0.5rem; }
+            .lti-mode .card { padding: 1rem; margin-bottom: 0.75rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-indicator" id="connectionIndicator"></div>
+    
+    <div class="container">
+        <div class="header">
+            <h1 class="title">MathQuiz Live</h1>
+            <p class="subtitle">Interface Élève</p>
+        </div>
+
+        <!-- LTI Context Info (affiché uniquement en mode LTI) -->
+        <div class="lti-context" id="ltiContext">
+            <div class="assignment-title" id="assignmentTitle">Quiz - Équations du Second Degré</div>
+            <div class="course-info" id="courseInfo">Mathématiques 2nde • M. Dupont</div>
+        </div>
+
+        <!-- Écran de connexion -->
+        <div id="joinScreen" class="slide-in">
+            <!-- Mode Standalone -->
+            <div id="standaloneJoin" class="card card-center">
+                <h2 style="margin-bottom: 2rem; color: #1f2937;">Rejoindre un Quiz</h2>
+                
+                <form id="joinForm">
+                    <div class="form-group">
+                        <label class="form-label">Code de la salle :</label>
+                        <input 
+                            type="text" 
+                            id="roomCode" 
+                            class="form-input uppercase" 
+                            placeholder="ABC123"
+                            maxlength="6"
+                            required
+                            autocomplete="off"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Votre prénom :</label>
+                        <input 
+                            type="text" 
+                            id="studentName" 
+                            class="form-input" 
+                            placeholder="Marie"
+                            maxlength="20"
+                            required
+                        >
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        🚀 Rejoindre le Quiz
+                    </button>
+                </form>
+            </div>
+
+            <!-- Mode LTI Auto-join -->
+            <div id="ltiAutoJoin" class="lti-auto-join hidden">
+                <div class="lti-waiting-message">
+                    <div class="spinner"></div>
+                    <div style="margin-top: 1rem;">🔗 Connexion automatique en cours...</div>
+                </div>
+                <div style="margin-top: 1rem; opacity: 0.8; font-size: 0.9rem;">
+                    Code de session : <strong id="ltiSessionCode">---</strong>
+                </div>
+            </div>
+
+            <div id="connectionStatus" class="status status-waiting hidden">
+                <div class="spinner"></div>
+                <div style="margin-top: 0.5rem;">Connexion en cours...</div>
+            </div>
+        </div>
+
+        <!-- Écran d'attente -->
+        <div id="waitingScreen" class="hidden">
+            <div class="card card-center slide-in">
+                <h2 style="margin-bottom: 1rem; color: #1f2937;">✅ Connecté !</h2>
+                <p style="color: #6b7280; margin-bottom: 2rem;">
+                    Salle : <strong id="connectedRoomCode">ABC123</strong>
+                </p>
+                
+                <div class="status status-connected">
+                    🕐 En attente du démarrage du quiz...
+                </div>
+
+                <div style="margin-top: 2rem;">
+                    <p style="color: #6b7280; text-align: center;">
+                        <span id="waitingStudentsCount">1</span> élève(s) connecté(s)
+                    </p>
+                </div>
+
+                <button id="leaveBtn" class="btn btn-danger" style="margin-top: 2rem;">
+                    🚪 Quitter la Salle
+                </button>
+            </div>
+        </div>
+
+        <!-- Écran de jeu -->
+        <div id="gameScreen" class="hidden">
+            <div class="question-card">
+                <!-- Info question -->
+                <div class="question-info">
+                    <span>Q<span id="currentQuestionNum">1</span>/<span id="totalQuestions">5</span></span>
+                    <span class="timer" id="questionTimer">⏰ 30s</span>
+                </div>
+
+                <!-- Question -->
+                <div class="card">
+                    <div id="questionText" class="question-text">
+                        Question en cours de chargement...
+                    </div>
+                </div>
+
+                <!-- Réponses -->
+                <div class="answers-grid">
+                    <button class="answer-btn answer-red" id="answer0" onclick="submitAnswer(0)">
+                        Réponse A
+                    </button>
+                    <button class="answer-btn answer-blue" id="answer1" onclick="submitAnswer(1)">
+                        Réponse B
+                    </button>
+                    <button class="answer-btn answer-yellow" id="answer2" onclick="submitAnswer(2)">
+                        Réponse C
+                    </button>
+                    <button class="answer-btn answer-green" id="answer3" onclick="submitAnswer(3)">
+                        Réponse D
+                    </button>
+                </div>
+
+                <!-- Feedback -->
+                <div id="answerFeedback" class="hidden">
+                    <div class="score-display">
+                        <div class="score-number" id="lastPoints">+850</div>
+                        <div class="score-label">Points gagnés</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Écran de fin -->
+        <div id="resultsScreen" class="hidden">
+            <div class="card card-center slide-in">
+                <h2 style="margin-bottom: 2rem; color: #1f2937;">🎉 Quiz Terminé !</h2>
+                
+                <div class="score-display bounce">
+                    <div class="score-number" id="finalScore">2450</div>
+                    <div class="score-label">Score Total</div>
+                </div>
+
+                <div class="rank-display">
+                    <div>🏆 Classement</div>
+                    <div class="rank-number" id="finalRank">3ème</div>
+                    <div style="font-size: 0.9rem; opacity: 0.9;">
+                        sur <span id="totalParticipants">24</span> participants
+                    </div>
+                </div>
+
+                <div style="background: #f9fafb; padding: 1.5rem; border-radius: 0.75rem; margin: 1rem 0; color: #374151;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; text-align: center;">
+                        <div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #10b981;" id="correctAnswers">6</div>
+                            <div style="font-size: 0.9rem;">Bonnes réponses</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #3b82f6;" id="accuracy">75%</div>
+                            <div style="font-size: 0.9rem;">Précision</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LTI Grade Info -->
+                <div class="lti-grade-info" id="ltiGradeInfo">
+                    <div style="margin-bottom: 0.5rem; opacity: 0.9;">Note attribuée :</div>
+                    <div class="grade-value" id="ltiGradeValue">16/20</div>
+                    <div style="font-size: 0.8rem; opacity: 0.8; margin-top: 0.5rem;">
+                        La note sera automatiquement enregistrée dans Elea
+                    </div>
+                </div>
+
+                <button id="newGameBtn" class="btn btn-success">
+                    🔄 Nouveau Quiz
+                </button>
+            </div>
+        </div>
+
+        <!-- Écran d'erreur -->
+        <div id="errorScreen" class="hidden">
+            <div class="card card-center">
+                <h2 style="margin-bottom: 1rem; color: #ef4444;">❌ Erreur</h2>
+                <p id="errorMessage" style="color: #6b7280; margin-bottom: 2rem; text-align: center;">
+                    Une erreur est survenue
+                </p>
+                
+                <button id="retryBtn" class="btn btn-primary">
+                    🔄 Réessayer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // État global de l'application avec support LTI
+        let studentState = {
+            currentScreen: 'join',
+            launchMode: 'STANDALONE', // 'STANDALONE' ou 'LTI_MODE'
+            roomCode: '',
+            studentId: '',
+            studentName: '',
+            participantData: null,
+            sessionData: null,
+            currentQuestion: null,
+            score: 0,
+            questionsAnswered: 0,
+            correctAnswers: 0,
+            hasAnswered: false,
+            timer: null,
+            questionStartTime: null,
+            ws: null,
+            connected: false,
+            
+            // LTI specific data
+            ltiData: null,
+            ltiSessionId: null,
+            ltiUserId: null,
+            ltiContextId: null,
+            autoJoinInProgress: false
+        };
+
+        // **DETECTION DU MODE LTI**
+        function detectLaunchMode() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Vérifier si on a des paramètres LTI
+            const hasLTIParams = urlParams.has('lti') || 
+                                 urlParams.has('lti_message_hint') || 
+                                 urlParams.has('login_hint') ||
+                                 urlParams.has('lti_deployment_id');
+            
+            if (hasLTIParams) {
+                console.log('🎯 Mode LTI détecté');
+                return 'LTI_MODE';
+            } else {
+                console.log('🎯 Mode Standalone détecté');
+                return 'STANDALONE_MODE';
+            }
+        }
+
+        // **INITIALISATION ADAPTATIVE**
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Démarrage MathQuiz Live - Élève (Version Unifiée)');
+            
+            try {
+                // Détecter le mode de lancement
+                studentState.launchMode = detectLaunchMode();
+                
+                // Adapter l'interface selon le mode
+                adaptInterfaceForMode();
+                
+                // Attendre que la configuration soit chargée
+                await waitForConfig();
+                
+                // Initialiser Supabase
+                if (window.initializeSupabase) {
+                    window.initializeSupabase();
+                }
+                
+                // Initialiser selon le mode
+                if (studentState.launchMode === 'LTI_MODE') {
+                    await initLTIMode();
+                } else {
+                    await initStandaloneMode();
+                }
+                
+                // Event listeners
+                setupEventListeners();
+                
+                // Indicateur de connexion
+                updateConnectionIndicator(false);
+                
+                console.log('✅ Interface élève initialisée en mode:', studentState.launchMode);
+                
+            } catch (error) {
+                console.error('❌ Erreur d\'initialisation:', error);
+                showError('Erreur d\'initialisation. Rechargez la page.');
+            }
+        });
+
+        // **ADAPTATION INTERFACE SELON LE MODE**
+        function adaptInterfaceForMode() {
+            const body = document.body;
+            
+            if (studentState.launchMode === 'LTI_MODE') {
+                body.classList.add('lti-mode');
+                document.getElementById('standaloneJoin').classList.add('hidden');
+                document.getElementById('ltiAutoJoin').classList.remove('hidden');
+            } else {
+                body.classList.remove('lti-mode');
+                document.getElementById('standaloneJoin').classList.remove('hidden');
+                document.getElementById('ltiAutoJoin').classList.add('hidden');
+            }
+        }
+
+        // **INITIALISATION MODE LTI**
+        async function initLTIMode() {
+            console.log('🎯 Initialisation mode LTI');
+            
+            try {
+                // Récupérer les données LTI depuis l'URL ou le localStorage
+                studentState.ltiData = extractLTIData();
+                
+                // Afficher le contexte LTI
+                updateLTIContext();
+                
+                // Auto-join à la session LTI
+                await performLTIAutoJoin();
+                
+            } catch (error) {
+                console.error('❌ Erreur initialisation LTI:', error);
+                showError('Erreur de connexion LTI. Veuillez relancer depuis Elea.');
+            }
+        }
+
+        // **INITIALISATION MODE STANDALONE**
+        async function initStandaloneMode() {
+            console.log('🎯 Initialisation mode Standalone');
+            
+            // Auto-remplir le code de salle depuis l'URL si présent
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomFromUrl = urlParams.get('room');
+            if (roomFromUrl) {
+                document.getElementById('roomCode').value = roomFromUrl.toUpperCase();
+            }
+        }
+
+        // **EXTRACTION DES DONNEES LTI**
+        function extractLTIData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Données simulées pour le développement
+            // En production, ces données viendraient du launch LTI réel
+            const ltiData = {
+                user_id: urlParams.get('user_id') || 'student_' + Date.now(),
+                context_id: urlParams.get('context_id') || 'course_2nde_math',
+                context_title: urlParams.get('context_title') || 'Mathématiques 2nde',
+                resource_link_title: urlParams.get('resource_link_title') || 'Quiz - Équations du Second Degré',
+                roles: urlParams.get('roles') || 'Learner',
+                lis_person_name_given: urlParams.get('given_name') || 'Élève',
+                lti_version: '1.3',
+                session_code: urlParams.get('session_code') || null,
+                assignment_id: urlParams.get('assignment_id') || null
+            };
+            
+            console.log('📋 Données LTI extraites:', ltiData);
+            return ltiData;
+        }
+
+        // **MISE A JOUR CONTEXTE LTI**
+        function updateLTIContext() {
+            if (!studentState.ltiData) return;
+            
+            document.getElementById('assignmentTitle').textContent = 
+                studentState.ltiData.resource_link_title || 'Quiz LTI';
+            document.getElementById('courseInfo').textContent = 
+                studentState.ltiData.context_title || 'Cours LTI';
+        }
+
+        // **AUTO-JOIN LTI**
+        async function performLTIAutoJoin() {
+            if (studentState.autoJoinInProgress) return;
+            studentState.autoJoinInProgress = true;
+            
+            try {
+                console.log('🔄 Auto-join LTI en cours...');
+                
+                // Si on a un code de session dans les paramètres LTI
+                if (studentState.ltiData.session_code) {
+                    studentState.roomCode = studentState.ltiData.session_code;
+                    document.getElementById('ltiSessionCode').textContent = studentState.roomCode;
+                } else {
+                    // Sinon, utiliser l'API LTI pour récupérer/créer une session
+                    const sessionInfo = await window.SessionAPI.getLTISession(
+                        studentState.ltiData.context_id,
+                        studentState.ltiData.assignment_id
+                    );
+                    studentState.roomCode = sessionInfo.room_code;
+                }
+                
+                // Utiliser le nom de l'utilisateur LTI
+                studentState.studentName = studentState.ltiData.lis_person_name_given || 'Élève LTI';
+                studentState.ltiUserId = studentState.ltiData.user_id;
+                
+                // Rejoindre automatiquement
+                await performJoinSession();
+                
+            } catch (error) {
+                console.error('❌ Erreur auto-join LTI:', error);
+                showError('Impossible de rejoindre la session automatiquement. Code: ' + (studentState.roomCode || 'N/A'));
+            } finally {
+                studentState.autoJoinInProgress = false;
+            }
+        }
+
+        async function waitForConfig() {
+            return new Promise((resolve) => {
+                const checkConfig = () => {
+                    if (window.CONFIG && window.SessionAPI && window.wsManager) {
+                        resolve();
+                    } else {
+                        setTimeout(checkConfig, 100);
+                    }
+                };
+                checkConfig();
+            });
+        }
+
+        // **GESTION DES ÉCRANS**
+        function showScreen(screenName) {
+            const screens = ['joinScreen', 'waitingScreen', 'gameScreen', 'resultsScreen', 'errorScreen'];
+            screens.forEach(screen => {
+                document.getElementById(screen).classList.add('hidden');
+            });
+            document.getElementById(screenName).classList.remove('hidden');
+            studentState.currentScreen = screenName;
+        }
+
+        function showConnectionStatus(show = true) {
+            const statusEl = document.getElementById('connectionStatus');
+            if (show) {
+                statusEl.classList.remove('hidden');
+            } else {
+                statusEl.classList.add('hidden');
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            showScreen('errorScreen');
+        }
+
+        function updateConnectionIndicator(connected) {
+            const indicator = document.getElementById('connectionIndicator');
+            if (connected) {
+                indicator.classList.add('connected');
+            } else {
+                indicator.classList.remove('connected');
+            }
+            studentState.connected = connected;
+        }
+
+        // **EVENT LISTENERS**
+        function setupEventListeners() {
+            // Formulaire de connexion (mode standalone uniquement)
+            if (studentState.launchMode === 'STANDALONE') {
+                document.getElementById('joinForm').addEventListener('submit', handleJoinRoom);
+                
+                // Auto-uppercase et validation pour le code de salle
+                document.getElementById('roomCode').addEventListener('input', function(e) {
+                    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                });
+
+                // Auto-capitalize pour le prénom
+                document.getElementById('studentName').addEventListener('input', function(e) {
+                    const value = e.target.value;
+                    e.target.value = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+                });
+            }
+            
+            // Boutons de contrôle
+            document.getElementById('leaveBtn').addEventListener('click', leaveRoom);
+            document.getElementById('newGameBtn').addEventListener('click', handleNewGame);
+            document.getElementById('retryBtn').addEventListener('click', handleRetry);
+        }
+
+        function handleNewGame() {
+            if (studentState.launchMode === 'LTI_MODE') {
+                // En mode LTI, on ne peut pas vraiment faire un "nouveau quiz"
+                // Rediriger vers l'assignment ou fermer la fenêtre
+                alert('Retournez à Elea pour commencer un nouveau quiz.');
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({type: 'quiz_completed'}, '*');
+                }
+            } else {
+                resetState();
+                showScreen('joinScreen');
+            }
+        }
+
+        function handleRetry() {
+            if (studentState.launchMode === 'LTI_MODE') {
+                // Retry LTI auto-join
+                performLTIAutoJoin();
+            } else {
+                showScreen('joinScreen');
+            }
+        }
+
+        // **GESTION DES SALLES**
+        async function handleJoinRoom(e) {
+            e.preventDefault();
+            
+            const roomCode = document.getElementById('roomCode').value.trim();
+            const studentName = document.getElementById('studentName').value.trim();
+            
+            if (!roomCode || !studentName) {
+                alert('Veuillez remplir tous les champs');
+                return;
+            }
+
+            if (roomCode.length !== 6) {
+                alert('Le code de salle doit contenir 6 caractères');
+                return;
+            }
+
+            studentState.roomCode = roomCode;
+            studentState.studentName = studentName;
+            
+            await performJoinSession();
+        }
+
+        async function performJoinSession() {
+            showConnectionStatus(true);
+            
+            try {
+                // Rejoindre la session via l'API appropriée
+                let response;
+                if (studentState.launchMode === 'LTI_MODE') {
+                    response = await window.SessionAPI.joinLTISession(
+                        studentState.roomCode, 
+                        studentState.studentName,
+                        studentState.ltiUserId,
+                        studentState.ltiData.context_id
+                    );
+                } else {
+                    response = await window.SessionAPI.joinSession(
+                        studentState.roomCode, 
+                        studentState.studentName
+                    );
+                }
+                
+                studentState.participantData = response.participant;
+                studentState.sessionData = response.session;
+                studentState.studentId = response.participant.id;
+                
+                // Connecter WebSocket
+                connectWebSocket();
+                
+                // Afficher l'écran d'attente
+                document.getElementById('connectedRoomCode').textContent = studentState.roomCode;
+                showScreen('waitingScreen');
+                showConnectionStatus(false);
+                
+                console.log('✅ Rejoint la session:', response);
+                
+            } catch (error) {
+                console.error('❌ Erreur connexion:', error);
+                showConnectionStatus(false);
+                showError('Code de salle invalide ou session non trouvée');
+            }
+        }
+
+        function connectWebSocket() {
+            if (!studentState.sessionData || !window.wsManager) return;
+
+            const sessionId = studentState.sessionData.id;
+            const userType = 'student';
+            const userId = studentState.studentId;
+
+            window.wsManager.connect(sessionId, userType, userId);
+
+            // Écouter les événements WebSocket
+            window.wsManager.on('connected', () => {
+                console.log('🔗 WebSocket connecté');
+                updateConnectionIndicator(true);
+            });
+
+            window.wsManager.on('disconnected', () => {
+                console.log('📵 WebSocket déconnecté');
+                updateConnectionIndicator(false);
+            });
+
+            window.wsManager.on('start_quiz', (data) => {
+                console.log('🚀 Quiz démarré:', data);
+                startQuiz(data);
+            });
+
+            window.wsManager.on('next_question', (data) => {
+                console.log('➡️ Nouvelle question:', data);
+                showNewQuestion(data);
+            });
+
+            window.wsManager.on('quiz_finished', (data) => {
+                console.log('🏁 Quiz terminé:', data);
+                showFinalResults(data);
+            });
+
+            window.wsManager.on('answer_confirmed', (data) => {
+                console.log('✅ Réponse confirmée:', data);
+                showAnswerFeedback(data);
+            });
+
+            window.wsManager.on('error', (error) => {
+                console.error('❌ Erreur WebSocket:', error);
+                showError('Erreur de connexion');
+            });
+
+            studentState.ws = window.wsManager;
+        }
+
+        function leaveRoom() {
+            const confirmMessage = studentState.launchMode === 'LTI_MODE' 
+                ? 'Êtes-vous sûr de vouloir quitter le quiz ?' 
+                : 'Êtes-vous sûr de vouloir quitter la salle ?';
+                
+            if (confirm(confirmMessage)) {
+                if (studentState.ws) {
+                    studentState.ws.disconnect();
+                }
+                
+                if (studentState.launchMode === 'LTI_MODE') {
+                    // En mode LTI, informer le parent ou fermer
+                    if (window.parent && window.parent !== window) {
+                        window.parent.postMessage({type: 'quiz_left'}, '*');
+                    }
+                } else {
+                    resetState();
+                    showScreen('joinScreen');
+                }
+            }
+        }
+
+        function resetState() {
+            studentState.roomCode = '';
+            studentState.studentId = '';
+            studentState.studentName = '';
+            studentState.participantData = null;
+            studentState.sessionData = null;
+            studentState.currentQuestion = null;
+            studentState.score = 0;
+            studentState.questionsAnswered = 0;
+            studentState.correctAnswers = 0;
+            studentState.hasAnswered = false;
+            
+            if (studentState.timer) {
+                clearInterval(studentState.timer);
+                studentState.timer = null;
+            }
+            
+            updateConnectionIndicator(false);
+        }
+
+        // **GESTION DU JEU**
+        function startQuiz(data) {
+            studentState.currentQuestion = data.question;
+            document.getElementById('totalQuestions').textContent = data.totalQuestions;
+            
+            showScreen('gameScreen');
+            displayQuestion(data.question, data.questionNumber);
+        }
+
+        function showNewQuestion(data) {
+            studentState.currentQuestion = data.question;
+            studentState.hasAnswered = false;
+            
+            displayQuestion(data.question, data.questionNumber);
+            enableAnswerButtons();
+            hideAnswerFeedback();
+        }
+
+        function displayQuestion(question, questionNumber) {
+            document.getElementById('currentQuestionNum').textContent = questionNumber;
+            document.getElementById('questionText').innerHTML = question.question;
+            
+            // Afficher les options
+            question.options.forEach((option, index) => {
+                const btn = document.getElementById(`answer${index}`);
+                btn.innerHTML = `${String.fromCharCode(65 + index)}. ${option}`;
+                btn.className = btn.className.replace(/answer-(correct|incorrect|selected)/g, '');
+            });
+            
+            // Démarrer le timer
+            startQuestionTimer(question.time || 30);
+            studentState.questionStartTime = Date.now();
+            
+            // Rendre les formules mathématiques
+            setTimeout(renderMath, 100);
+        }
+
+        function startQuestionTimer(timeLimit) {
+            let timeLeft = timeLimit;
+            const timerEl = document.getElementById('questionTimer');
+            
+            if (studentState.timer) {
+                clearInterval(studentState.timer);
+            }
+            
+            // Mettre à jour immédiatement
+            updateTimerDisplay(timeLeft, timerEl);
+            
+            studentState.timer = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay(timeLeft, timerEl);
+                
+                if (timeLeft <= 0) {
+                    clearInterval(studentState.timer);
+                    if (!studentState.hasAnswered) {
+                        // Temps écoulé
+                        disableAnswerButtons();
+                        showTimeoutMessage();
+                    }
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay(timeLeft, timerEl) {
+            timerEl.textContent = `⏰ ${timeLeft}s`;
+            
+            // Changer la couleur et l'animation selon le temps restant
+            timerEl.className = 'timer';
+            if (timeLeft <= 3) {
+                timerEl.classList.add('critical');
+            } else if (timeLeft <= 10) {
+                timerEl.classList.add('warning');
+            }
+        }
+
+        // **SOUMISSION DE REPONSE ADAPTEE LTI**
+        async function submitAnswer(answerIndex) {
+            if (studentState.hasAnswered) return;
+            
+            studentState.hasAnswered = true;
+            
+            // Calculer le temps de réponse
+            const timeSpent = Math.round((Date.now() - studentState.questionStartTime) / 1000);
+            
+            // Feedback visuel immédiat
+            const clickedBtn = document.getElementById(`answer${answerIndex}`);
+            clickedBtn.classList.add('answer-selected');
+            
+            try {
+                // Envoyer la réponse via WebSocket
+                studentState.ws.send({
+                    type: 'student_answer',
+                    answerIndex: answerIndex,
+                    timeSpent: timeSpent,
+                    ltiMode: studentState.launchMode === 'LTI_MODE',
+                    ltiUserId: studentState.ltiUserId
+                });
+                
+                // Calculer et afficher les points (simulation côté client)
+                const isCorrect = answerIndex === studentState.currentQuestion.correct;
+                const points = isCorrect ? window.Utils.calculateScore(timeSpent, studentState.currentQuestion.time || 30) : 0;
+                
+                // Sauvegarder via l'API appropriée
+                try {
+                    if (studentState.launchMode === 'LTI_MODE') {
+                        await window.SessionAPI.submitLTIAnswer(
+                            studentState.studentId, 
+                            studentState.questionsAnswered, 
+                            answerIndex, 
+                            timeSpent,
+                            isCorrect,
+                            studentState.currentQuestion.time || 30,
+                            studentState.ltiUserId,
+                            studentState.ltiData.context_id
+                        );
+                    } else {
+                        await window.SessionAPI.submitAnswer(
+                            studentState.studentId, 
+                            studentState.questionsAnswered, 
+                            answerIndex, 
+                            timeSpent,
+                            isCorrect,
+                            studentState.currentQuestion.time || 30
+                        );
+                    }
+                } catch (error) {
+                    console.error('❌ Erreur sauvegarde réponse:', error);
+                }
+                
+                // Simuler la confirmation
+                setTimeout(() => {
+                    showAnswerFeedback({
+                        correct: isCorrect,
+                        points: points
+                    });
+                }, 500);
+                
+                console.log('📝 Réponse envoyée:', { 
+                    answerIndex, 
+                    timeSpent, 
+                    isCorrect, 
+                    points,
+                    ltiMode: studentState.launchMode 
+                });
+                
+            } catch (error) {
+                console.error('❌ Erreur envoi réponse:', error);
+                // En cas d'erreur, simuler une confirmation
+                setTimeout(() => {
+                    const isCorrect = answerIndex === studentState.currentQuestion.correct;
+                    showAnswerFeedback({
+                        correct: isCorrect,
+                        points: isCorrect ? 800 : 0
+                    });
+                }, 500);
+            }
+            
+            disableAnswerButtons();
+        }
+
+        function showAnswerFeedback(data) {
+            // Mettre en évidence la bonne/mauvaise réponse
+            const answerButtons = document.querySelectorAll('.answer-btn');
+            answerButtons.forEach((btn, index) => {
+                if (index === studentState.currentQuestion.correct) {
+                    btn.classList.add('answer-correct');
+                } else {
+                    btn.classList.add('answer-incorrect');
+                }
+            });
+            
+            // Mettre à jour le score
+            if (data.correct) {
+                studentState.score += data.points;
+                studentState.correctAnswers++;
+            }
+            studentState.questionsAnswered++;
+            
+            // Afficher les points gagnés
+            document.getElementById('lastPoints').textContent = data.correct ? `+${data.points}` : '0';
+            document.getElementById('answerFeedback').classList.remove('hidden');
+            
+            // Animation
+            if (data.correct) {
+                document.getElementById('answerFeedback').classList.add('bounce');
+                vibrate([100, 50, 100]);
+            } else {
+                vibrate([200]);
+            }
+            
+            // Arrêter le timer
+            if (studentState.timer) {
+                clearInterval(studentState.timer);
+            }
+        }
+
+        function showTimeoutMessage() {
+            document.getElementById('lastPoints').textContent = '0';
+            document.getElementById('answerFeedback').classList.remove('hidden');
+            
+            // Marquer toutes les réponses comme incorrectes sauf la bonne
+            const answerButtons = document.querySelectorAll('.answer-btn');
+            answerButtons.forEach((btn, index) => {
+                if (index === studentState.currentQuestion.correct) {
+                    btn.classList.add('answer-correct');
+                } else {
+                    btn.classList.add('answer-incorrect');
+                }
+            });
+            
+            vibrate([200, 100, 200]);
+        }
+
+        function hideAnswerFeedback() {
+            document.getElementById('answerFeedback').classList.add('hidden');
+            document.getElementById('answerFeedback').classList.remove('bounce');
+        }
+
+        function enableAnswerButtons() {
+            const answerButtons = document.querySelectorAll('.answer-btn');
+            answerButtons.forEach(btn => {
+                btn.disabled = false;
+                btn.className = btn.className.replace(/answer-(correct|incorrect|selected)/g, '');
+            });
+        }
+
+        function disableAnswerButtons() {
+            const answerButtons = document.querySelectorAll('.answer-btn');
+            answerButtons.forEach(btn => {
+                btn.disabled = true;
+            });
+        }
+
+        // **RESULTATS FINAUX AVEC SUPPORT LTI**
+        async function showFinalResults(data) {
+            showScreen('resultsScreen');
+            
+            // Calculer le rang et la précision
+            const accuracy = studentState.questionsAnswered > 0 ? 
+                Math.round((studentState.correctAnswers / studentState.questionsAnswered) * 100) : 0;
+            
+            // Supposer un rang basé sur le score (simulation)
+            const simulatedRank = Math.floor(Math.random() * 5) + 1;
+            const totalParticipants = data.finalResults?.length || Math.floor(Math.random() * 20) + 5;
+            
+            document.getElementById('finalScore').textContent = studentState.score;
+            document.getElementById('finalRank').textContent = getRankDisplay(simulatedRank);
+            document.getElementById('totalParticipants').textContent = totalParticipants;
+            document.getElementById('correctAnswers').textContent = studentState.correctAnswers;
+            document.getElementById('accuracy').textContent = accuracy + '%';
+            
+            // Gestion spécifique LTI
+            if (studentState.launchMode === 'LTI_MODE') {
+                await handleLTIGrading();
+            }
+            
+            // Vibration de fin
+            vibrate([100, 50, 100, 50, 200]);
+        }
+
+        // **GESTION DES NOTES LTI**
+        async function handleLTIGrading() {
+            try {
+                console.log('📊 Calcul et envoi de la note LTI...');
+                
+                // Calculer la note (par exemple, sur 20)
+                const maxScore = 20;
+                const grade = Math.round((studentState.correctAnswers / studentState.questionsAnswered) * maxScore);
+                
+                // Afficher la note dans l'interface
+                document.getElementById('ltiGradeValue').textContent = `${grade}/${maxScore}`;
+                
+                // Envoyer la note via l'API LTI
+                if (window.SessionAPI.submitLTIGrade) {
+                    await window.SessionAPI.submitLTIGrade({
+                        ltiUserId: studentState.ltiUserId,
+                        contextId: studentState.ltiData.context_id,
+                        score: studentState.score,
+                        maxScore: studentState.questionsAnswered * 1000, // Score max possible
+                        grade: grade,
+                        maxGrade: maxScore,
+                        accuracy: Math.round((studentState.correctAnswers / studentState.questionsAnswered) * 100),
+                        timeSpent: Date.now() - studentState.sessionStartTime
+                    });
+                    
+                    console.log('✅ Note LTI envoyée:', grade + '/' + maxScore);
+                }
+                
+                // Informer le parent frame (LMS)
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({
+                        type: 'lti_grade_submitted',
+                        grade: grade,
+                        maxGrade: maxScore,
+                        score: studentState.score
+                    }, '*');
+                }
+                
+            } catch (error) {
+                console.error('❌ Erreur envoi note LTI:', error);
+                // La note sera peut-être calculée côté serveur
+            }
+        }
+
+        function getRankDisplay(rank) {
+            if (rank === 1) return '1er';
+            if (rank === 2) return '2ème';
+            if (rank === 3) return '3ème';
+            return rank + 'ème';
+        }
+
+        // **UTILITAIRES**
+        function renderMath() {
+            if (window.MathJax && MathJax.typesetPromise) {
+                MathJax.typesetPromise().catch(err => console.error('Erreur MathJax:', err));
+            }
+        }
+
+        // Vibration feedback (si supporté)
+        function vibrate(pattern = [100]) {
+            if ('vibrate' in navigator) {
+                navigator.vibrate(pattern);
+            }
+        }
+
+        // **COMMUNICATION AVEC LE LMS (mode LTI)**
+        if (typeof window !== 'undefined') {
+            // Écouter les messages du parent frame
+            window.addEventListener('message', function(event) {
+                if (studentState.launchMode !== 'LTI_MODE') return;
+                
+                try {
+                    const message = event.data;
+                    console.log('📨 Message reçu du LMS:', message);
+                    
+                    switch (message.type) {
+                        case 'lms_ready':
+                            console.log('✅ LMS prêt');
+                            break;
+                        case 'session_start':
+                            if (message.sessionCode) {
+                                studentState.roomCode = message.sessionCode;
+                                performLTIAutoJoin();
+                            }
+                            break;
+                        case 'force_submit':
+                            // Force la soumission si le temps est écoulé côté LMS
+                            if (studentState.currentScreen === 'gameScreen' && !studentState.hasAnswered) {
+                                submitAnswer(-1); // Réponse vide
+                            }
+                            break;
+                    }
+                } catch (error) {
+                    console.error('❌ Erreur traitement message LMS:', error);
+                }
+            });
+            
+            // Informer le parent frame que l'interface est prête
+            if (studentState.launchMode === 'LTI_MODE' && window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'student_interface_ready',
+                    timestamp: Date.now()
+                }, '*');
+            }
+        }
+
+        // Empêcher le zoom sur double-tap (iOS)
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (event) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                event.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+
+        // Wake lock pour éviter la mise en veille pendant le quiz
+        let wakeLock = null;
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('🔒 Wake lock activé');
+                }
+            } catch (err) {
+                console.log('❌ Wake lock non supporté:', err);
+            }
+        }
+
+        // Demander wake lock au début du quiz
+        window.addEventListener('focus', requestWakeLock);
+
+        // **GESTION BEFOREUNLOAD POUR LTI**
+        window.addEventListener('beforeunload', function(event) {
+            if (studentState.launchMode === 'LTI_MODE' && 
+                studentState.currentScreen === 'gameScreen' && 
+                studentState.questionsAnswered > 0) {
+                
+                // Sauvegarder l'état avant fermeture
+                try {
+                    localStorage.setItem('mathquiz_lti_state', JSON.stringify({
+                        score: studentState.score,
+                        questionsAnswered: studentState.questionsAnswered,
+                        correctAnswers: studentState.correctAnswers,
+                        sessionId: studentState.sessionData?.id,
+                        timestamp: Date.now()
+                    }));
+                } catch (e) {
+                    console.warn('Impossible de sauvegarder l\'état LTI');
+                }
+                
+                // Message de confirmation pour éviter les fermetures accidentelles
+                const message = 'Êtes-vous sûr de vouloir quitter le quiz ? Votre progression sera perdue.';
+                event.returnValue = message;
+                return message;
+            }
+        });
+
+        // **RECUPERATION ETAT LTI (si rechargement page)**
+        function tryRestoreLTIState() {
+            if (studentState.launchMode !== 'LTI_MODE') return;
+            
+            try {
+                const savedState = localStorage.getItem('mathquiz_lti_state');
+                if (savedState) {
+                    const state = JSON.parse(savedState);
+                    
+                    // Vérifier que l'état n'est pas trop ancien (max 1h)
+                    if (Date.now() - state.timestamp < 3600000) {
+                        studentState.score = state.score || 0;
+                        studentState.questionsAnswered = state.questionsAnswered || 0;
+                        studentState.correctAnswers = state.correctAnswers || 0;
+                        
+                        console.log('🔄 État LTI restauré:', state);
+                    }
+                    
+                    // Nettoyer le localStorage
+                    localStorage.removeItem('mathquiz_lti_state');
+                }
+            } catch (error) {
+                console.warn('Impossible de restaurer l\'état LTI:', error);
+            }
+        }
+
+        // Appeler la restauration après l'initialisation
+        if (studentState.launchMode === 'LTI_MODE') {
+            setTimeout(tryRestoreLTIState, 1000);
+        }
+
+        console.log('🎯 Interface élève MathQuiz Live prête ! Mode:', studentState.launchMode);
+    </script>
+</body>
+</html>
