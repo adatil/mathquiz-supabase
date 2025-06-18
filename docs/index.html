@@ -763,6 +763,29 @@
                 // Traiter la réponse de l'élève
                 updateParticipants();
             });
+                // AJOUTER ce code dans la fonction connectWebSocket() de index.html
+// Juste après le listener 'student_answer'
+
+        window.wsManager.on('participant_updated', (participantData) => {
+    console.log('🔄 Participant mis à jour:', participantData);
+    updateParticipants(); // Rafraîchir la liste des participants
+});
+
+// Optionnel : listener pour tous les changements de participants
+window.wsManager.on('user_joined', (data) => {
+    if (data.userType === 'student') {
+        console.log('👨‍🎓 Nouvel élève connecté:', data.studentName);
+        updateParticipants();
+    }
+});
+
+window.wsManager.on('user_left', (data) => {
+    if (data.userType === 'student') {
+        console.log('👋 Élève déconnecté:', data.userId);
+        updateParticipants();
+    }
+});
+            
             window.wsManager.on('participant_updated', (participantData) => {
                 console.log('🔄 Participant mis à jour:', participantData);
                 updateParticipants();
