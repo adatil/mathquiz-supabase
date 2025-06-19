@@ -1,0 +1,12 @@
+# Netlify redirects pour LTI
+# Ce fichier doit être nommé exactement "_redirects" (sans extension)
+
+# Redirection LTI : toute requête POST vers /lti-launch redirige vers index.html avec paramètres LTI
+/lti-launch    /index.html?lti=true&source=elea&method=post    200
+
+# Toute requête vers un chemin LTI redirige vers l'app principale
+/lti/*         /index.html?lti=true&source=elea                200
+/api/lti       /index.html?lti=true&source=elea                200
+
+# Gestion générale des 404 - tout redirige vers index.html
+/*             /index.html                                     200
