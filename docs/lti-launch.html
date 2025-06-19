@@ -1,0 +1,13 @@
+# Fichier _redirects à créer à la racine de votre projet
+# Gère les requêtes POST LTI
+
+# Redirection POST vers GET pour LTI
+/lti-launch    /index.html?lti=true&source=elea   200
+/api/lti       /index.html?lti=true&source=elea   200
+/*             /index.html                        200
+
+# Headers pour LTI
+/*
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self' https://*.elea.univ-lorraine.fr https://*.univ-lorraine.fr
+  X-LTI-Support: 1.1
