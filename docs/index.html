@@ -151,6 +151,86 @@
             color: white;
         }
 
+        /* Paramètres de scoring */
+        .scoring-config {
+            background: linear-gradient(135deg, #f3e8ff, #e0e7ff);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 2px solid #a855f7;
+        }
+
+        .scoring-title {
+            color: #7c3aed;
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .scoring-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .scoring-input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .scoring-label {
+            font-weight: 600;
+            color: #4c1d95;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .scoring-input {
+            padding: 0.75rem;
+            border: 2px solid #c7d2fe;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: bold;
+            text-align: center;
+            background: white;
+            color: #1f2937;
+        }
+
+        .scoring-input:focus {
+            outline: none;
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        }
+
+        .scoring-preview {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            text-align: center;
+        }
+
+        .scoring-preview-title {
+            color: #92400e;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .scoring-examples {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .scoring-example {
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            color: #374151;
+        }
+
         /* Session Live Controls */
         .session-controls {
             background: rgba(255, 255, 255, 0.95);
@@ -353,6 +433,8 @@
             .room-code { font-size: 2rem; }
             .answers-preview { grid-template-columns: 1fr; }
             .grid { grid-template-columns: 1fr; }
+            .scoring-grid { grid-template-columns: 1fr; }
+            .scoring-examples { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -368,6 +450,48 @@
 
                 <div id="connectionStatus" class="status-message status-info hidden">
                     <span id="connectionText">🔗 Connexion à Supabase...</span>
+                </div>
+
+                <!-- Paramètres de scoring -->
+                <div class="scoring-config">
+                    <div class="scoring-title">⚙️ Paramètres de Scoring</div>
+                    <div class="scoring-grid">
+                        <div class="scoring-input-group">
+                            <label class="scoring-label">Points par question</label>
+                            <input type="number" id="basePoints" class="scoring-input" value="1000" min="100" max="5000" step="100">
+                        </div>
+                        <div class="scoring-input-group">
+                            <label class="scoring-label">Points après mi-temps (%)</label>
+                            <input type="number" id="lateAnswerPercent" class="scoring-input" value="75" min="50" max="100" step="5">
+                        </div>
+                        <div class="scoring-input-group">
+                            <label class="scoring-label">Système</label>
+                            <div style="padding: 0.75rem; background: #f3f4f6; border-radius: 0.5rem; font-size: 0.9rem; color: #6b7280; text-align: center;">
+                                Simple et équitable
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="scoring-preview">
+                        <div class="scoring-preview-title">📊 Règles de Scoring</div>
+                        <div class="scoring-examples">
+                            <div class="scoring-example" style="background: #dcfce7; border: 2px solid #22c55e;">
+                                <strong>Première moitié</strong><br>
+                                <span id="fastExample">1000 pts</span><br>
+                                <small>100% des points</small>
+                            </div>
+                            <div class="scoring-example" style="background: #fef3c7; border: 2px solid #f59e0b;">
+                                <strong>Seconde moitié</strong><br>
+                                <span id="slowExample">750 pts</span><br>
+                                <small>75% des points</small>
+                            </div>
+                            <div class="scoring-example" style="background: #fee2e2; border: 2px solid #ef4444;">
+                                <strong>Réponse fausse</strong><br>
+                                <span>0 pts</span><br>
+                                <small>Aucun point</small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="grid">
@@ -423,6 +547,15 @@
                         <h2 style="font-size: 1.2rem; margin-bottom: 0.5rem; opacity: 0.9;">Code de salle</h2>
                         <div class="room-code" id="roomCodeDisplay">ABC123</div>
                         <p style="opacity: 0.8;">Les élèves peuvent rejoindre sur : <strong id="studentUrlDisplay"></strong></p>
+                    </div>
+
+                    <!-- Affichage des paramètres de scoring actifs -->
+                    <div style="background: #f3f4f6; padding: 1rem; border-radius: 0.75rem; margin-bottom: 1rem;">
+                        <div style="color: #374151; font-weight: 600; margin-bottom: 0.5rem;">📊 Scoring Actuel :</div>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; font-size: 0.9rem; color: #6b7280;">
+                            <div>Points: <strong id="currentBasePoints">1000</strong> pts</div>
+                            <div>Après mi-temps: <strong id="currentLatePercent">75</strong>%</div>
+                        </div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
@@ -566,7 +699,12 @@
             currentQuestionIndex: 0,
             sessionStatus: 'idle', // idle, waiting, active, paused, finished
             ws: null,
-            teacherId: 'teacher_' + Date.now()
+            teacherId: 'teacher_' + Date.now(),
+            // Paramètres de scoring personnalisés
+            scoringConfig: {
+                basePoints: 1000,
+                lateAnswerPercent: 75  // Pourcentage des points après mi-temps
+            }
         };
 
         // Initialisation de l'application
@@ -584,6 +722,9 @@
 
                 // Charger les quiz existants
                 await loadQuizzes();
+                
+                // Initialiser les paramètres de scoring
+                initializeScoringInputs();
                 
                 // Afficher le status de connexion
                 showConnectionStatus('✅ Connecté à Supabase', 'success');
@@ -621,6 +762,77 @@
                     statusEl.classList.add('hidden');
                 }, 3000);
             }
+        }
+
+        // Gestion des paramètres de scoring
+        function initializeScoringInputs() {
+            // Charger les valeurs depuis le localStorage ou utiliser les valeurs par défaut
+            const saved = localStorage.getItem('mathquiz_scoring');
+            if (saved) {
+                try {
+                    appState.scoringConfig = JSON.parse(saved);
+                } catch (e) {
+                    console.warn('Impossible de charger les paramètres sauvegardés');
+                }
+            }
+
+            // Mettre à jour les inputs
+            document.getElementById('basePoints').value = appState.scoringConfig.basePoints;
+            document.getElementById('lateAnswerPercent').value = appState.scoringConfig.lateAnswerPercent;
+
+            // Ajouter les event listeners
+            ['basePoints', 'lateAnswerPercent'].forEach(id => {
+                document.getElementById(id).addEventListener('input', updateScoringConfig);
+            });
+
+            // Mettre à jour l'aperçu
+            updateScoringPreview();
+        }
+
+        function updateScoringConfig() {
+            // Récupérer les nouvelles valeurs
+            appState.scoringConfig.basePoints = parseInt(document.getElementById('basePoints').value) || 1000;
+            appState.scoringConfig.lateAnswerPercent = parseInt(document.getElementById('lateAnswerPercent').value) || 75;
+
+            // Sauvegarder dans localStorage
+            localStorage.setItem('mathquiz_scoring', JSON.stringify(appState.scoringConfig));
+
+            // Mettre à jour l'aperçu
+            updateScoringPreview();
+
+            console.log('📊 Paramètres de scoring mis à jour:', appState.scoringConfig);
+        }
+
+        function updateScoringPreview() {
+            const config = appState.scoringConfig;
+
+            // Calculer les exemples de scores
+            const fastScore = config.basePoints; // 100% des points
+            const slowScore = Math.round(config.basePoints * config.lateAnswerPercent / 100); // Pourcentage configuré
+
+            // Mettre à jour l'affichage
+            document.getElementById('fastExample').textContent = fastScore + ' pts';
+            document.getElementById('slowExample').textContent = slowScore + ' pts';
+        }
+
+        function calculateCustomScore(timeSpent, maxTime, config = appState.scoringConfig) {
+            const halfTime = maxTime / 2;
+            
+            if (timeSpent <= halfTime) {
+                // Première moitié : 100% des points
+                return config.basePoints;
+            } else {
+                // Seconde moitié : pourcentage configuré des points
+                return Math.round(config.basePoints * config.lateAnswerPercent / 100);
+            }
+        }
+
+        // Mettre à jour la fonction Utils.calculateScore pour utiliser les paramètres personnalisés
+        function getCustomUtils() {
+            return {
+                ...window.Utils,
+                calculateScore: (timeSpent, maxTime) => calculateCustomScore(timeSpent, maxTime, appState.scoringConfig)
+            };
         }
 
         // Navigation
@@ -760,38 +972,28 @@
 
             window.wsManager.on('student_answer', (data) => {
                 console.log('📝 Réponse reçue:', data);
-                // Traiter la réponse de l'élève
+                // Traiter la réponse de l'élève avec les paramètres personnalisés
                 updateParticipants();
             });
-                // AJOUTER ce code dans la fonction connectWebSocket() de index.html
-// Juste après le listener 'student_answer'
-
-        window.wsManager.on('participant_updated', (participantData) => {
-    console.log('🔄 Participant mis à jour:', participantData);
-    updateParticipants(); // Rafraîchir la liste des participants
-});
-
-// Optionnel : listener pour tous les changements de participants
-window.wsManager.on('user_joined', (data) => {
-    if (data.userType === 'student') {
-        console.log('👨‍🎓 Nouvel élève connecté:', data.studentName);
-        updateParticipants();
-    }
-});
-
-window.wsManager.on('user_left', (data) => {
-    if (data.userType === 'student') {
-        console.log('👋 Élève déconnecté:', data.userId);
-        updateParticipants();
-    }
-});
             
             window.wsManager.on('participant_updated', (participantData) => {
                 console.log('🔄 Participant mis à jour:', participantData);
                 updateParticipants();
             });
 
+            window.wsManager.on('user_joined', (data) => {
+                if (data.userType === 'student') {
+                    console.log('👨‍🎓 Nouvel élève connecté:', data.studentName);
+                    updateParticipants();
+                }
+            });
 
+            window.wsManager.on('user_left', (data) => {
+                if (data.userType === 'student') {
+                    console.log('👋 Élève déconnecté:', data.userId);
+                    updateParticipants();
+                }
+            });
             
             appState.ws = window.wsManager;
         }
@@ -802,6 +1004,10 @@ window.wsManager.on('user_left', (data) => {
             // Code de salle
             document.getElementById('roomCodeDisplay').textContent = appState.currentSession.room_code;
             document.getElementById('studentUrlDisplay').textContent = window.CONFIG?.STUDENT_URL || 'URL non disponible';
+            
+            // Affichage des paramètres de scoring actifs
+            document.getElementById('currentBasePoints').textContent = appState.scoringConfig.basePoints;
+            document.getElementById('currentLatePercent').textContent = appState.scoringConfig.lateAnswerPercent;
             
             // Stats
             document.getElementById('totalQuestions').textContent = appState.currentQuiz.totalQuestions;
@@ -890,20 +1096,21 @@ window.wsManager.on('user_left', (data) => {
                 // Démarrer la session via API
                 await window.SessionAPI.startQuiz(appState.currentSession.id);
 
-                // Envoyer la première question via WebSocket
+                // Envoyer la première question via WebSocket avec les paramètres de scoring
                 const question = appState.currentQuiz.questions[0];
                 window.wsManager.send({
                     type: 'start_quiz',
                     question: question,
                     questionNumber: 1,
-                    totalQuestions: appState.currentQuiz.totalQuestions
+                    totalQuestions: appState.currentQuiz.totalQuestions,
+                    scoringConfig: appState.scoringConfig // Envoyer les paramètres aux clients
                 });
 
                 // Afficher la question
                 displayCurrentQuestion();
                 updateSessionDisplay();
 
-                console.log('🚀 Quiz démarré');
+                console.log('🚀 Quiz démarré avec paramètres:', appState.scoringConfig);
                 
             } catch (error) {
                 console.error('Erreur démarrage quiz:', error);
@@ -947,11 +1154,12 @@ window.wsManager.on('user_left', (data) => {
                 
                 const question = appState.currentQuiz.questions[appState.currentQuestionIndex];
                 
-                // Envoyer via WebSocket
+                // Envoyer via WebSocket avec les paramètres de scoring
                 window.wsManager.send({
                     type: 'next_question',
                     question: question,
-                    questionNumber: appState.currentQuestionIndex + 1
+                    questionNumber: appState.currentQuestionIndex + 1,
+                    scoringConfig: appState.scoringConfig
                 });
 
                 displayCurrentQuestion();

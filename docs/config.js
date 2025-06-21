@@ -1,4 +1,4 @@
-// Configuration MathQuiz - Production v2 - Debug Fix
+// Configuration MathQuiz - Production v2 - Simplified Scoring
 const CONFIG = {
     // Supabase Configuration - MathsQuizzv2
     SUPABASE_URL: 'https://klufdvhlkeaxoxucdnzv.supabase.co',
@@ -18,14 +18,22 @@ const CONFIG = {
     MIN_ROOM_CODE_LENGTH: 6,
     AUTO_ADVANCE_DELAY: 3000, // ms between questions
     
-    // Scoring System
-    BASE_POINTS: 1000,
-    TIME_BONUS_MULTIPLIER: 20,
-    PERFECT_SCORE_BONUS: 500,
+    // Scoring System - Simplified
+    DEFAULT_SCORING: {
+        basePoints: 1000,
+        lateAnswerPercent: 75, // Pourcentage des points après mi-temps
+        minPoints: 0
+    },
+    
+    // Scoring Limits for UI validation
+    SCORING_LIMITS: {
+        basePoints: { min: 100, max: 5000, step: 100 },
+        lateAnswerPercent: { min: 50, max: 100, step: 5 }
+    },
     
     // Version Info
-    VERSION: '2.1.1',
-    BUILD_DATE: '2025-06-18',
+    VERSION: '2.2.0',
+    BUILD_DATE: '2025-06-21',
     ENVIRONMENT: 'production',
     DEBUG: true // Activé pour diagnostic
 };
@@ -82,10 +90,17 @@ const SessionAPI = {
     },
     
     // Create new session
-    async createSession(quizId, teacherId) {
+    async createSession(quizId, teacherId, scoringConfig = null) {
+        const body = { quizId, teacherId };
+        
+        // Ajouter les paramètres de scoring si fournis
+        if (scoringConfig) {
+            body.scoringConfig = scoringConfig;
+        }
+        
         return await apiCall('/create-session', {
             method: 'POST',
-            body: JSON.stringify({ quizId, teacherId })
+            body: JSON.stringify(body)
         });
     },
     
@@ -102,22 +117,34 @@ const SessionAPI = {
         return await apiCall(`/session/${sessionId}/participants`);
     },
     
-    // Start quiz
-    async startQuiz(sessionId) {
+    // Start quiz with custom scoring
+    async startQuiz(sessionId, scoringConfig = null) {
+        const body = { sessionId };
+        
+        // Ajouter les paramètres de scoring si fournis
+        if (scoringConfig) {
+            body.scoringConfig = scoringConfig;
+        }
+        
         return await apiCall('/start-quiz', {
             method: 'POST',
-            body: JSON.stringify({ sessionId })
+            body: JSON.stringify(body)
         });
     },
     
-    // Submit answer (VERSION COMPATIBLE - ancienne et nouvelle API)
-    async submitAnswer(participantId, questionId, answerIndex, timeSpent, isCorrect, maxTime) {
-        // Pour compatibilité, utiliser l'ancienne API si les nouveaux paramètres ne sont pas fournis
-        const body = { participantId, questionId, answerIndex, timeSpent };
+    // Submit answer with custom scoring support
+    async submitAnswer(participantId, questionId, answerIndex, timeSpent, isCorrect, maxTime, scoringConfig = null) {
+        const body = { 
+            participantId, 
+            questionId, 
+            answerIndex, 
+            timeSpent 
+        };
         
         // Ajouter les nouveaux paramètres seulement s'ils sont fournis
         if (isCorrect !== undefined) body.isCorrect = isCorrect;
         if (maxTime !== undefined) body.maxTime = maxTime;
+        if (scoringConfig) body.scoringConfig = scoringConfig;
         
         return await apiCall('/submit-answer', {
             method: 'POST',
@@ -307,6 +334,11 @@ class RealtimeManager {
             
             console.log('📤 Sending event:', data.type, 'to target:', targetType);
             
+            // Log des paramètres de scoring s'ils sont présents
+            if (data.scoringConfig) {
+                console.log('📊 Scoring config sent:', data.scoringConfig);
+            }
+            
             // Insérer l'événement dans la table quiz_events
             const { data: insertedEvent, error } = await this.supabase
                 .from('quiz_events')
@@ -387,9 +419,49 @@ const Utils = {
         return Math.random().toString(36).substring(2, 8).toUpperCase();
     },
     
-    calculateScore(timeSpent, maxTime) {
-        const timeBonus = Math.max(0, CONFIG.BASE_POINTS - (timeSpent * CONFIG.TIME_BONUS_MULTIPLIER));
-        return Math.round(CONFIG.BASE_POINTS + timeBonus);
+    // Simplified scoring calculation
+    calculateScore(timeSpent, maxTime, customConfig = null) {
+        const config = customConfig || CONFIG.DEFAULT_SCORING;
+        const halfTime = maxTime / 2;
+        
+        if (timeSpent <= halfTime) {
+            // Première moitié : 100% des points
+            return config.basePoints;
+        } else {
+            // Seconde moitié : pourcentage configuré des points
+            return Math.round(config.basePoints * config.lateAnswerPercent / 100);
+        }
+    },
+    
+    // Valider la configuration de scoring simplifiée
+    validateScoringConfig(config) {
+        const limits = CONFIG.SCORING_LIMITS;
+        const errors = [];
+        
+        // Vérifier basePoints
+        if (config.basePoints < limits.basePoints.min || config.basePoints > limits.basePoints.max) {
+            errors.push(`Points par question doivent être entre ${limits.basePoints.min} et ${limits.basePoints.max}`);
+        }
+        
+        // Vérifier lateAnswerPercent
+        if (config.lateAnswerPercent < limits.lateAnswerPercent.min || config.lateAnswerPercent > limits.lateAnswerPercent.max) {
+            errors.push(`Pourcentage après mi-temps doit être entre ${limits.lateAnswerPercent.min}% et ${limits.lateAnswerPercent.max}%`);
+        }
+        
+        return {
+            isValid: errors.length === 0,
+            errors: errors
+        };
+    },
+    
+    // Créer des exemples de scoring pour prévisualisation
+    generateScoringExamples(config, questionTime = 30) {
+        const halfTime = questionTime / 2;
+        return {
+            fast: this.calculateScore(5, questionTime, config),           // Première moitié
+            slow: this.calculateScore(halfTime + 5, questionTime, config), // Seconde moitié
+            exactHalf: this.calculateScore(halfTime, questionTime, config) // Exactement à mi-temps
+        };
     },
     
     formatTime(seconds) {
@@ -403,6 +475,59 @@ const Utils = {
     }
 };
 
+// Scoring Configuration Manager
+const ScoringManager = {
+    // Charger la configuration depuis localStorage
+    loadConfig() {
+        try {
+            const saved = localStorage.getItem('mathquiz_scoring_config');
+            if (saved) {
+                const config = JSON.parse(saved);
+                const validation = Utils.validateScoringConfig(config);
+                if (validation.isValid) {
+                    return config;
+                } else {
+                    console.warn('Configuration de scoring invalide:', validation.errors);
+                }
+            }
+        } catch (error) {
+            console.error('Erreur de chargement de la configuration:', error);
+        }
+        
+        // Retourner la configuration par défaut
+        return { ...CONFIG.DEFAULT_SCORING };
+    },
+    
+    // Sauvegarder la configuration dans localStorage
+    saveConfig(config) {
+        const validation = Utils.validateScoringConfig(config);
+        if (!validation.isValid) {
+            throw new Error('Configuration invalide: ' + validation.errors.join(', '));
+        }
+        
+        try {
+            localStorage.setItem('mathquiz_scoring_config', JSON.stringify(config));
+            console.log('📊 Configuration de scoring sauvegardée:', config);
+            return true;
+        } catch (error) {
+            console.error('Erreur de sauvegarde:', error);
+            return false;
+        }
+    },
+    
+    // Réinitialiser aux valeurs par défaut
+    resetToDefault() {
+        const defaultConfig = { ...CONFIG.DEFAULT_SCORING };
+        this.saveConfig(defaultConfig);
+        return defaultConfig;
+    },
+    
+    // Obtenir les limites pour l'interface utilisateur
+    getLimits() {
+        return CONFIG.SCORING_LIMITS;
+    }
+};
+
 // Export for use in modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -411,6 +536,7 @@ if (typeof module !== 'undefined' && module.exports) {
         RealtimeManager,
         realtimeManager,
         Utils,
+        ScoringManager,
         initializeSupabase
     };
 }
@@ -421,6 +547,7 @@ if (typeof window !== 'undefined') {
     window.SessionAPI = SessionAPI;
     window.realtimeManager = realtimeManager;
     window.Utils = Utils;
+    window.ScoringManager = ScoringManager;
     window.initializeSupabase = initializeSupabase;
     
     // Backward compatibility
@@ -442,5 +569,6 @@ if (typeof window !== 'undefined') {
     
     console.log('🎯 MathQuiz Configuration Loaded v' + CONFIG.VERSION);
     console.log('📡 API Endpoint:', CONFIG.SESSIONS_API);
-    console.log('🔗 Realtime System: Supabase Realtime (Debug Mode)');
+    console.log('🔗 Realtime System: Supabase Realtime (Simplified Scoring)');
+    console.log('📊 Default Scoring:', CONFIG.DEFAULT_SCORING);
 }

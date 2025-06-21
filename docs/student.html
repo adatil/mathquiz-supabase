@@ -353,6 +353,37 @@
             opacity: 0.9;
         }
 
+        /* Scoring config display */
+        .scoring-info {
+            background: rgba(168, 85, 247, 0.1);
+            border: 2px solid rgba(168, 85, 247, 0.3);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+
+        .scoring-info-title {
+            font-weight: bold;
+            color: #8b5cf6;
+            margin-bottom: 0.5rem;
+        }
+
+        .scoring-params {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            text-align: center;
+        }
+
+        .scoring-param {
+            background: rgba(255, 255, 255, 0.5);
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            color: #374151;
+        }
+
         /* Ranking */
         .rank-display {
             text-align: center;
@@ -454,6 +485,7 @@
             .card { padding: 1.5rem; margin-bottom: 1rem; }
             .question-text { font-size: 1.1rem; }
             .answer-btn { padding: 1.2rem; font-size: 1rem; }
+            .scoring-params { grid-template-columns: 1fr; }
         }
 
         @media (max-height: 600px) {
@@ -521,6 +553,25 @@
                 <p style="color: #6b7280; margin-bottom: 2rem;">
                     Salle : <strong id="connectedRoomCode">ABC123</strong>
                 </p>
+                
+                <!-- Affichage des paramètres de scoring -->
+                <div id="scoringInfo" class="scoring-info hidden">
+                    <div class="scoring-info-title">📊 Règles de Scoring</div>
+                    <div class="scoring-params">
+                        <div class="scoring-param" style="background: #dcfce7;">
+                            <strong id="basePointsDisplay">1000</strong><br>
+                            <small>Points par question</small>
+                        </div>
+                        <div class="scoring-param" style="background: #fef3c7;">
+                            <strong>1ère moitié</strong><br>
+                            <small>100% des points</small>
+                        </div>
+                        <div class="scoring-param" style="background: #fed7aa;">
+                            <strong id="latePercentDisplay">75</strong>%<br>
+                            <small>2ème moitié</small>
+                        </div>
+                    </div>
+                </div>
                 
                 <div class="status status-connected">
                     🕐 En attente du démarrage du quiz...
@@ -649,7 +700,12 @@
             timer: null,
             questionStartTime: null,
             ws: null,
-            connected: false
+            connected: false,
+            // Paramètres de scoring personnalisés reçus du professeur
+            scoringConfig: {
+                basePoints: 1000,
+                lateAnswerPercent: 75  // Pourcentage des points après mi-temps
+            }
         };
 
         // **INITIALISATION**
@@ -827,11 +883,21 @@
 
             window.wsManager.on('start_quiz', (data) => {
                 console.log('🚀 Quiz démarré:', data);
+                // Mettre à jour les paramètres de scoring reçus du professeur
+                if (data.scoringConfig) {
+                    studentState.scoringConfig = data.scoringConfig;
+                    updateScoringDisplay();
+                    console.log('📊 Paramètres de scoring reçus:', data.scoringConfig);
+                }
                 startQuiz(data);
             });
 
             window.wsManager.on('next_question', (data) => {
                 console.log('➡️ Nouvelle question:', data);
+                // Mettre à jour les paramètres de scoring si fournis
+                if (data.scoringConfig) {
+                    studentState.scoringConfig = data.scoringConfig;
+                }
                 showNewQuestion(data);
             });
 
@@ -851,6 +917,19 @@
             });
 
             studentState.ws = window.wsManager;
+        }
+
+        function updateScoringDisplay() {
+            const config = studentState.scoringConfig;
+            
+            // Mettre à jour l'affichage des paramètres
+            document.getElementById('basePointsDisplay').textContent = config.basePoints;
+            document.getElementById('latePercentDisplay').textContent = config.lateAnswerPercent;
+            
+            // Afficher la section scoring info
+            document.getElementById('scoringInfo').classList.remove('hidden');
+            
+            console.log('📊 Affichage des paramètres de scoring mis à jour');
         }
 
         function leaveRoom() {
@@ -874,6 +953,12 @@
             studentState.questionsAnswered = 0;
             studentState.correctAnswers = 0;
             studentState.hasAnswered = false;
+            
+            // Réinitialiser les paramètres de scoring par défaut
+            studentState.scoringConfig = {
+                basePoints: 1000,
+                lateAnswerPercent: 75
+            };
             
             if (studentState.timer) {
                 clearInterval(studentState.timer);
@@ -958,6 +1043,19 @@
             }
         }
 
+        // **FONCTION DE CALCUL DE SCORE PERSONNALISÉE**
+        function calculateCustomScore(timeSpent, maxTime, config = studentState.scoringConfig) {
+            const halfTime = maxTime / 2;
+            
+            if (timeSpent <= halfTime) {
+                // Première moitié : 100% des points
+                return config.basePoints;
+            } else {
+                // Seconde moitié : pourcentage configuré des points
+                return Math.round(config.basePoints * config.lateAnswerPercent / 100);
+            }
+        }
+
         // **FONCTION CORRIGÉE - async ajouté**
         async function submitAnswer(answerIndex) {
             if (studentState.hasAnswered) return;
@@ -979,9 +1077,9 @@
                     timeSpent: timeSpent
                 });
                 
-                // Calculer et afficher les points (simulation côté client)
+                // Calculer et afficher les points avec les paramètres personnalisés
                 const isCorrect = answerIndex === studentState.currentQuestion.correct;
-                const points = isCorrect ? window.Utils.calculateScore(timeSpent, studentState.currentQuestion.time || 30) : 0;
+                const points = isCorrect ? calculateCustomScore(timeSpent, studentState.currentQuestion.time || 30) : 0;
                 
                 // Après le calcul des points côté client, envoyer à l'API
                 try {
@@ -990,8 +1088,8 @@
                         studentState.questionsAnswered, 
                         answerIndex, 
                         timeSpent,
-                        isCorrect,  // 👈 AJOUTER
-                        studentState.currentQuestion.time || 30  // 👈 AJOUTER
+                        isCorrect,
+                        studentState.currentQuestion.time || 30
                     );
                 } catch (error) {
                     console.error('❌ Erreur sauvegarde réponse:', error);
@@ -1006,15 +1104,17 @@
                 }, 500);
                 
                 console.log('📝 Réponse envoyée:', { answerIndex, timeSpent, isCorrect, points });
+                console.log('📊 Scoring utilisé:', studentState.scoringConfig);
                 
             } catch (error) {
                 console.error('❌ Erreur envoi réponse:', error);
-                // En cas d'erreur, simuler une confirmation
+                // En cas d'erreur, simuler une confirmation avec le scoring personnalisé
                 setTimeout(() => {
                     const isCorrect = answerIndex === studentState.currentQuestion.correct;
+                    const points = isCorrect ? calculateCustomScore(timeSpent, studentState.currentQuestion.time || 30) : 0;
                     showAnswerFeedback({
                         correct: isCorrect,
-                        points: isCorrect ? 800 : 0
+                        points: points
                     });
                 }, 500);
             }
