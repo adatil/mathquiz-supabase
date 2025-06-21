@@ -1043,45 +1043,98 @@
             }
         }
 
-        // **FONCTION DE CALCUL DE SCORE PERSONNALISÉE**
-        function calculateCustomScore(timeSpent, maxTime, config = studentState.scoringConfig) {
-            const halfTime = maxTime / 2;
+        // **SYSTÈME DE SCORING CORRIGÉ ET UNIFIÉ**
+        function calculateCustomScore(timeSpent, maxTime, config = studentState.scoringConfig, isCorrect = true) {
+            // Utiliser ScoringSystem si disponible, sinon fallback
+            if (window.ScoringSystem) {
+                return window.ScoringSystem.calculateScore(timeSpent, maxTime, config, isCorrect);
+            }
             
-            if (timeSpent <= halfTime) {
+            // Fonction de fallback si ScoringSystem n'est pas disponible
+            return fallbackCalculateScore(timeSpent, maxTime, config, isCorrect);
+        }
+        
+        // Fonction de fallback pour le calcul de score
+        function fallbackCalculateScore(timeSpent, maxTime, config, isCorrect = true) {
+            // Validation des paramètres
+            if (!isCorrect || timeSpent < 0 || maxTime <= 0) {
+                return 0;
+            }
+            
+            const validConfig = {
+                basePoints: parseInt(config?.basePoints) || 1000,
+                lateAnswerPercent: parseInt(config?.lateAnswerPercent) || 75
+            };
+            
+            const halfTime = maxTime / 2;
+            const clampedTime = Math.min(timeSpent, maxTime);
+            
+            if (clampedTime <= halfTime) {
                 // Première moitié : 100% des points
-                return config.basePoints;
+                return validConfig.basePoints;
             } else {
                 // Seconde moitié : pourcentage configuré des points
-                return Math.round(config.basePoints * config.lateAnswerPercent / 100);
+                return Math.round(validConfig.basePoints * validConfig.lateAnswerPercent / 100);
             }
         }
 
-        // **FONCTION CORRIGÉE - async ajouté**
+        // **FONCTION CORRIGÉE ET AMÉLIORÉE**
         async function submitAnswer(answerIndex) {
             if (studentState.hasAnswered) return;
             
             studentState.hasAnswered = true;
             
-            // Calculer le temps de réponse
-            const timeSpent = Math.round((Date.now() - studentState.questionStartTime) / 1000);
+            // Calculer le temps de réponse avec validation
+            const currentTime = Date.now();
+            const timeSpent = Math.max(0, Math.round((currentTime - studentState.questionStartTime) / 1000));
+            const maxTime = studentState.currentQuestion.time || 30;
+            
+            // Validation des données
+            if (!studentState.questionStartTime || timeSpent < 0) {
+                console.error('❌ Données de timing invalides');
+                timeSpent = maxTime; // Utiliser le temps maximum en cas d'erreur
+            }
+            
+            console.log('📊 Temps de réponse:', timeSpent, 'secondes sur', maxTime);
             
             // Feedback visuel immédiat
             const clickedBtn = document.getElementById(`answer${answerIndex}`);
             clickedBtn.classList.add('answer-selected');
             
             try {
-                // Envoyer la réponse via WebSocket
-                studentState.ws.send({
-                    type: 'student_answer',
-                    answerIndex: answerIndex,
-                    timeSpent: timeSpent
+                // Vérifier si la réponse est correcte
+                const isCorrect = answerIndex === studentState.currentQuestion.correct;
+                
+                // Calculer les points avec validation et debugging
+                const points = isCorrect ? calculateCustomScore(timeSpent, maxTime, studentState.scoringConfig, true) : 0;
+                
+                // Debug du scoring si activé
+                if (window.ScoringSystem && window.ScoringSystem.debug) {
+                    window.ScoringSystem.debug('Réponse élève', timeSpent, maxTime, studentState.scoringConfig, isCorrect);
+                }
+                
+                console.log('📊 Scoring calculé:', { 
+                    isCorrect, 
+                    timeSpent, 
+                    maxTime, 
+                    points, 
+                    config: studentState.scoringConfig 
                 });
                 
-                // Calculer et afficher les points avec les paramètres personnalisés
-                const isCorrect = answerIndex === studentState.currentQuestion.correct;
-                const points = isCorrect ? calculateCustomScore(timeSpent, studentState.currentQuestion.time || 30) : 0;
+                // Envoyer la réponse via WebSocket avec toutes les données
+                if (studentState.ws) {
+                    studentState.ws.send({
+                        type: 'student_answer',
+                        answerIndex: answerIndex,
+                        timeSpent: timeSpent,
+                        maxTime: maxTime,
+                        isCorrect: isCorrect,
+                        calculatedPoints: points,
+                        scoringConfig: studentState.scoringConfig
+                    });
+                }
                 
-                // Après le calcul des points côté client, envoyer à l'API
+                // Envoyer à l'API avec gestion d'erreur améliorée
                 try {
                     await window.SessionAPI.submitAnswer(
                         studentState.studentId, 
@@ -1089,32 +1142,35 @@
                         answerIndex, 
                         timeSpent,
                         isCorrect,
-                        studentState.currentQuestion.time || 30
+                        maxTime,
+                        studentState.scoringConfig
                     );
-                } catch (error) {
-                    console.error('❌ Erreur sauvegarde réponse:', error);
+                } catch (apiError) {
+                    console.warn('⚠️ Erreur API (continuant avec les données locales):', apiError);
                 }
                 
-                // Simuler la confirmation
+                // Simuler la confirmation avec feedback
                 setTimeout(() => {
                     showAnswerFeedback({
                         correct: isCorrect,
-                        points: points
+                        points: points,
+                        timeSpent: timeSpent,
+                        maxTime: maxTime
                     });
                 }, 500);
                 
-                console.log('📝 Réponse envoyée:', { answerIndex, timeSpent, isCorrect, points });
-                console.log('📊 Scoring utilisé:', studentState.scoringConfig);
-                
             } catch (error) {
-                console.error('❌ Erreur envoi réponse:', error);
-                // En cas d'erreur, simuler une confirmation avec le scoring personnalisé
+                console.error('❌ Erreur lors de l\'envoi de la réponse:', error);
+                // Fallback : simuler une confirmation locale
+                const isCorrect = answerIndex === studentState.currentQuestion.correct;
+                const points = isCorrect ? calculateCustomScore(timeSpent, maxTime, studentState.scoringConfig, true) : 0;
+                
                 setTimeout(() => {
-                    const isCorrect = answerIndex === studentState.currentQuestion.correct;
-                    const points = isCorrect ? calculateCustomScore(timeSpent, studentState.currentQuestion.time || 30) : 0;
                     showAnswerFeedback({
                         correct: isCorrect,
-                        points: points
+                        points: points,
+                        timeSpent: timeSpent,
+                        maxTime: maxTime
                     });
                 }, 500);
             }

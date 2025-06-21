@@ -790,40 +790,88 @@
         }
 
         function updateScoringConfig() {
-            // Récupérer les nouvelles valeurs
-            appState.scoringConfig.basePoints = parseInt(document.getElementById('basePoints').value) || 1000;
-            appState.scoringConfig.lateAnswerPercent = parseInt(document.getElementById('lateAnswerPercent').value) || 75;
-
+            // Récupérer et valider les nouvelles valeurs
+            const basePoints = parseInt(document.getElementById('basePoints').value);
+            const lateAnswerPercent = parseInt(document.getElementById('lateAnswerPercent').value);
+            
+            // Validation avec limites
+            const validatedConfig = {
+                basePoints: Math.max(100, Math.min(5000, basePoints || 1000)),
+                lateAnswerPercent: Math.max(50, Math.min(100, lateAnswerPercent || 75)),
+                minPoints: 0
+            };
+            
+            // Mettre à jour les inputs avec les valeurs validées
+            document.getElementById('basePoints').value = validatedConfig.basePoints;
+            document.getElementById('lateAnswerPercent').value = validatedConfig.lateAnswerPercent;
+            
+            // Mettre à jour l'état global
+            appState.scoringConfig = validatedConfig;
+            
             // Sauvegarder dans localStorage
-            localStorage.setItem('mathquiz_scoring', JSON.stringify(appState.scoringConfig));
-
+            try {
+                localStorage.setItem('mathquiz_scoring', JSON.stringify(validatedConfig));
+            } catch (e) {
+                console.warn('Impossible de sauvegarder les paramètres:', e);
+            }
+            
             // Mettre à jour l'aperçu
             updateScoringPreview();
-
-            console.log('📊 Paramètres de scoring mis à jour:', appState.scoringConfig);
+            
+            console.log('📊 Paramètres de scoring validés et mis à jour:', validatedConfig);
+            
+            return validatedConfig;
         }
 
         function updateScoringPreview() {
             const config = appState.scoringConfig;
-
-            // Calculer les exemples de scores
-            const fastScore = config.basePoints; // 100% des points
-            const slowScore = Math.round(config.basePoints * config.lateAnswerPercent / 100); // Pourcentage configuré
-
+            const questionTime = 30; // Temps par défaut pour l'exemple
+            
+            // Utiliser ScoringSystem si disponible, sinon calculer manuellement
+            const examples = window.ScoringSystem ? 
+                window.ScoringSystem.generateExamples(config, questionTime) :
+                {
+                    fast: config.basePoints,
+                    slow: Math.round(config.basePoints * config.lateAnswerPercent / 100),
+                    incorrect: 0
+                };
+            
             // Mettre à jour l'affichage
-            document.getElementById('fastExample').textContent = fastScore + ' pts';
-            document.getElementById('slowExample').textContent = slowScore + ' pts';
+            document.getElementById('fastExample').textContent = examples.fast + ' pts';
+            document.getElementById('slowExample').textContent = examples.slow + ' pts';
+            
+            // Afficher des informations détaillées si disponible
+            if (window.ScoringSystem) {
+                console.log('📊 Exemples de scoring générés:', examples);
+            }
         }
 
-        function calculateCustomScore(timeSpent, maxTime, config = appState.scoringConfig) {
-            const halfTime = maxTime / 2;
+        // **SYSTÈME DE SCORING UNIFIÉ CÔTÉ PROFESSEUR**
+        function calculateCustomScore(timeSpent, maxTime, config = appState.scoringConfig, isCorrect = true) {
+            // Utiliser ScoringSystem si disponible, sinon fallback
+            if (window.ScoringSystem) {
+                return window.ScoringSystem.calculateScore(timeSpent, maxTime, config, isCorrect);
+            }
             
-            if (timeSpent <= halfTime) {
+            // Fonction de fallback
+            if (!isCorrect || timeSpent < 0 || maxTime <= 0) {
+                return 0;
+            }
+            
+            const validConfig = {
+                basePoints: parseInt(config?.basePoints) || 1000,
+                lateAnswerPercent: parseInt(config?.lateAnswerPercent) || 75
+            };
+            
+            const halfTime = maxTime / 2;
+            const clampedTime = Math.min(timeSpent, maxTime);
+            
+            if (clampedTime <= halfTime) {
                 // Première moitié : 100% des points
-                return config.basePoints;
+                return validConfig.basePoints;
             } else {
                 // Seconde moitié : pourcentage configuré des points
-                return Math.round(config.basePoints * config.lateAnswerPercent / 100);
+                return Math.round(validConfig.basePoints * validConfig.lateAnswerPercent / 100);
             }
         }
 

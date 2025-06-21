@@ -409,6 +409,85 @@ class RealtimeManager {
 // Global Realtime instance
 const realtimeManager = new RealtimeManager();
 
+// =============================================================================
+// SYSTÈME DE SCORING UNIFIÉ - VERSION CORRIGÉE
+// =============================================================================
+
+const ScoringSystem = {
+    // Fonction principale de calcul du score
+    calculateScore(timeSpent, maxTime, config, isCorrect = true) {
+        // Validation des paramètres
+        if (!isCorrect || timeSpent < 0 || maxTime <= 0) {
+            return 0;
+        }
+
+        // S'assurer que les paramètres sont valides
+        const validConfig = this.validateConfig(config);
+        const halfTime = maxTime / 2;
+        
+        // Limiter le temps passé au temps maximum
+        const clampedTime = Math.min(timeSpent, maxTime);
+        
+        if (clampedTime <= halfTime) {
+            // Première moitié : 100% des points
+            return validConfig.basePoints;
+        } else {
+            // Seconde moitié : pourcentage configuré des points
+            const scaledPoints = Math.round(validConfig.basePoints * validConfig.lateAnswerPercent / 100);
+            // S'assurer qu'on ne donne jamais moins de points minimum
+            return Math.max(scaledPoints, validConfig.minPoints || 0);
+        }
+    },
+
+    // Validation et correction des paramètres de scoring
+    validateConfig(config) {
+        const defaultConfig = {
+            basePoints: 1000,
+            lateAnswerPercent: 75,
+            minPoints: 0
+        };
+
+        if (!config) return defaultConfig;
+
+        return {
+            basePoints: Math.max(100, Math.min(5000, parseInt(config.basePoints) || defaultConfig.basePoints)),
+            lateAnswerPercent: Math.max(50, Math.min(100, parseInt(config.lateAnswerPercent) || defaultConfig.lateAnswerPercent)),
+            minPoints: Math.max(0, parseInt(config.minPoints) || defaultConfig.minPoints)
+        };
+    },
+
+    // Générer des exemples pour l'aperçu
+    generateExamples(config, questionTime = 30) {
+        const validConfig = this.validateConfig(config);
+        const halfTime = questionTime / 2;
+        
+        return {
+            fast: this.calculateScore(5, questionTime, validConfig, true),           // Réponse rapide
+            halfTime: this.calculateScore(halfTime, questionTime, validConfig, true), // Exactement à mi-temps
+            slow: this.calculateScore(halfTime + 5, questionTime, validConfig, true), // Réponse lente
+            incorrect: 0 // Réponse incorrecte
+        };
+    },
+
+    // Fonction de debug pour identifier les problèmes
+    debug(label, timeSpent, maxTime, config, isCorrect) {
+        if (!CONFIG.DEBUG) return;
+        
+        console.group(`🔍 Debug Scoring: ${label}`);
+        console.log('Temps passé:', timeSpent, 'secondes');
+        console.log('Temps maximum:', maxTime, 'secondes');
+        console.log('Configuration:', config);
+        console.log('Réponse correcte:', isCorrect);
+        console.log('Mi-temps:', maxTime / 2, 'secondes');
+        
+        const score = this.calculateScore(timeSpent, maxTime, config, isCorrect);
+        console.log('Score calculé:', score, 'points');
+        console.groupEnd();
+        
+        return score;
+    }
+};
+
 // Utility Functions
 const Utils = {
     generateId() {
@@ -419,18 +498,10 @@ const Utils = {
         return Math.random().toString(36).substring(2, 8).toUpperCase();
     },
     
-    // Simplified scoring calculation
-    calculateScore(timeSpent, maxTime, customConfig = null) {
+    // Fonction de scoring mise à jour pour utiliser ScoringSystem
+    calculateScore(timeSpent, maxTime, customConfig = null, isCorrect = true) {
         const config = customConfig || CONFIG.DEFAULT_SCORING;
-        const halfTime = maxTime / 2;
-        
-        if (timeSpent <= halfTime) {
-            // Première moitié : 100% des points
-            return config.basePoints;
-        } else {
-            // Seconde moitié : pourcentage configuré des points
-            return Math.round(config.basePoints * config.lateAnswerPercent / 100);
-        }
+        return ScoringSystem.calculateScore(timeSpent, maxTime, config, isCorrect);
     },
     
     // Valider la configuration de scoring simplifiée
@@ -541,6 +612,91 @@ if (typeof module !== 'undefined' && module.exports) {
     };
 }
 
+// =============================================================================
+// FONCTIONS DE DIAGNOSTIC ET INITIALISATION
+// =============================================================================
+
+const ScoringDebug = {
+    // Tester le calcul de scoring avec différents scénarios
+    testScoring(config = null) {
+        const testConfig = config || { basePoints: 1000, lateAnswerPercent: 75, minPoints: 0 };
+        const questionTime = 30;
+        
+        console.group('🧪 Test du système de scoring');
+        console.log('Configuration:', testConfig);
+        console.log('Temps de question:', questionTime + 's');
+        
+        const tests = [
+            { time: 5, expected: 'Points complets (première moitié)' },
+            { time: 15, expected: 'Points complets (exactement mi-temps)' },
+            { time: 20, expected: 'Points réduits (seconde moitié)' },
+            { time: 30, expected: 'Points réduits (temps écoulé)' },
+            { time: 35, expected: 'Points réduits (dépassement limité)' }
+        ];
+        
+        tests.forEach(test => {
+            const score = ScoringSystem.calculateScore(test.time, questionTime, testConfig, true);
+            console.log(`⏱️ ${test.time}s: ${score} pts (${test.expected})`);
+        });
+        
+        console.log('❌ Réponse incorrecte:', ScoringSystem.calculateScore(10, questionTime, testConfig, false));
+        console.groupEnd();
+    },
+    
+    // Vérifier la cohérence entre les différentes parties du système
+    checkConsistency() {
+        console.group('🔍 Vérification de cohérence');
+        
+        // Vérifier que ScoringSystem est disponible partout
+        console.log('ScoringSystem global:', !!window.ScoringSystem);
+        
+        // Vérifier les configurations
+        if (typeof appState !== 'undefined') {
+            console.log('Config professeur:', appState.scoringConfig);
+        }
+        
+        if (typeof studentState !== 'undefined') {
+            console.log('Config élève:', studentState.scoringConfig);
+        }
+        
+        console.groupEnd();
+    }
+};
+
+// Fonction d'initialisation globale du système de scoring
+function initializeScoringSystemGlobal() {
+    // Ajouter ScoringSystem au scope global
+    window.ScoringSystem = ScoringSystem;
+    window.ScoringDebug = ScoringDebug;
+    
+    // Vérifier et corriger les paramètres existants
+    if (typeof appState !== 'undefined' && appState.scoringConfig) {
+        appState.scoringConfig = ScoringSystem.validateConfig(appState.scoringConfig);
+    }
+    
+    if (typeof studentState !== 'undefined' && studentState.scoringConfig) {
+        studentState.scoringConfig = ScoringSystem.validateConfig(studentState.scoringConfig);
+    }
+    
+    console.log('✅ Système de scoring initialisé et unifié');
+}
+
+// Export for use in modules
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        CONFIG,
+        SessionAPI,
+        RealtimeManager,
+        realtimeManager,
+        Utils,
+        ScoringManager,
+        ScoringSystem,
+        ScoringDebug,
+        initializeSupabase,
+        initializeScoringSystemGlobal
+    };
+}
+
 // Auto-initialize if in browser
 if (typeof window !== 'undefined') {
     window.CONFIG = CONFIG;
@@ -548,7 +704,10 @@ if (typeof window !== 'undefined') {
     window.realtimeManager = realtimeManager;
     window.Utils = Utils;
     window.ScoringManager = ScoringManager;
+    window.ScoringSystem = ScoringSystem;
+    window.ScoringDebug = ScoringDebug;
     window.initializeSupabase = initializeSupabase;
+    window.initializeScoringSystemGlobal = initializeScoringSystemGlobal;
     
     // Backward compatibility
     window.MATHQUIZ_CONFIG = CONFIG;
@@ -560,6 +719,8 @@ if (typeof window !== 'undefined') {
         const checkSupabase = () => {
             if (window.supabase) {
                 initializeSupabase();
+                // Initialiser le système de scoring unifié
+                initializeScoringSystemGlobal();
             } else {
                 setTimeout(checkSupabase, 100);
             }
